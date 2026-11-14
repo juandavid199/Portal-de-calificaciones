@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { obtenerAuthCliente } from '@/lib/firebaseClient';
 import type { RolUsuario } from '@/lib/auth';
@@ -28,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [cargando, setCargando] = useState(true);
 
@@ -111,6 +113,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       setUsuario(null);
+      if (typeof router?.replace === 'function') {
+        router.replace('/login');
+      }
+    } catch {
+      setUsuario(null);
+      if (typeof router?.replace === 'function') {
+        router.replace('/login');
+      }
     } finally {
       setCargando(false);
     }

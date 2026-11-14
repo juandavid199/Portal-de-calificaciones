@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 /**
@@ -11,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
  */
 export function Navigation() {
   const { usuario, rol, cerrarSesion } = useAuth();
+  const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
@@ -183,6 +185,9 @@ export function Navigation() {
                   onClick={async () => {
                     setAbierto(false);
                     await cerrarSesion();
+                    if (typeof router?.replace === 'function') {
+                      router.replace('/login');
+                    }
                   }}
                   style={{
                     width: '100%',

@@ -91,3 +91,4 @@ describe('RouteGuard - Bloqueo estricto de vistas sin sesión', () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 });
+

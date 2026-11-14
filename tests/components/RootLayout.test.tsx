@@ -4,10 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import RootLayout from '@/app/layout';
 
+const mockReplace = vi.fn();
+const mockCerrarSesion = vi.fn();
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
-    replace: vi.fn(),
+    replace: mockReplace,
   }),
   usePathname: () => '/',
   useSearchParams: () => ({
@@ -22,7 +25,7 @@ vi.mock('@/context/AuthContext', () => ({
     rol: 'admin',
     cargando: false,
     iniciarSesion: vi.fn(),
-    cerrarSesion: vi.fn(),
+    cerrarSesion: mockCerrarSesion,
   }),
 }));
 
@@ -97,5 +100,23 @@ describe('RootLayout - Landmarks Semánticos y Navegación Accesible', () => {
     // Tecla Escape cierra el menú
     await user.keyboard('{Escape}');
     expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('permite cerrar sesión desde el menú y redirige a /login', async () => {
+    const user = userEvent.setup();
+    render(
+      <RootLayout>
+        <div>Contenido</div>
+      </RootLayout>
+    );
+
+    const menuButton = screen.getByRole('button', { name: /abrir menú de navegación|cerrar menú de navegación/i });
+    await user.click(menuButton);
+
+    const logoutButton = screen.getByRole('button', { name: /cerrar sesión/i });
+    await user.click(logoutButton);
+
+    expect(mockCerrarSesion).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 });
