@@ -50,6 +50,7 @@ Configuradas en [.vscode/settings.json](file:///c:/Users/Usuario/Downloads/marte
 * **SDK Web y Contexto:** [src/lib/firebaseClient.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/src/lib/firebaseClient.ts) y [src/context/AuthContext.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/src/context/AuthContext.tsx) con `credentials: 'include'`.
 * **Inicio de Sesión Accesible:** [app/login/page.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/app/login/page.tsx). Pruebas en [tests/auth/loginFlow.test.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/tests/auth/loginFlow.test.tsx).
 * **Protección de Rutas (Proxy/Middleware):** [proxy.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/proxy.ts) y [middleware.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/middleware.ts) redirigiendo a `/login` ante ausencia de cookie `sesion`.
+* **Aprovisionamiento y Seguridad Local:** Script `scripts/seed.mjs` añadido a [.gitignore](file:///c:/Users/Usuario/Downloads/martes_jueves/.gitignore) para mantener la capacidad de aprovisionamiento en local sin exponer configuraciones en repositorios remotos.
 * **Navegación Dinámica por Roles:** [src/components/layout/Navigation.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/src/components/layout/Navigation.tsx) adaptando la interfaz según `docente`, `estudiante` o `admin`.
 * **Evidencias de Calidad:** Consolidación de métricas de rendimiento, accesibilidad WCAG y retos en [calidad/CALIDAD.md](file:///c:/Users/Usuario/Downloads/martes_jueves/calidad/CALIDAD.md).
 
