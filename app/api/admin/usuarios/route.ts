@@ -37,3 +37,4 @@ export const GET = manejar(async (request: Request) => {
 
   return NextResponse.json({ usuarios }, { status: 200 });
 });
+

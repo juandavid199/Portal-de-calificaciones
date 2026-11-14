@@ -13,3 +13,4 @@ export async function registrarNuevoUsuario(datos: CrearUsuarioInput): Promise<U
 export async function obtenerUsuariosSistema(): Promise<UsuarioDoc[]> {
   return await listarUsuariosAdmin();
 }
+

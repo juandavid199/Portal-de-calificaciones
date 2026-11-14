@@ -12,3 +12,4 @@ export const crearUsuarioSchema = z.object({
 });
 
 export type CrearUsuarioInput = z.infer<typeof crearUsuarioSchema>;
+

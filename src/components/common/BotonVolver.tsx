@@ -40,3 +40,4 @@ export function BotonVolver({ href, texto, etiquetaAria }: BotonVolverProps) {
     </Link>
   );
 }
+

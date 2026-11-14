@@ -19,3 +19,4 @@ describe('<BotonVolver /> - Componente de Retroceso Accesible (WCAG 2.2 AA)', ()
     expect(link).toHaveStyle({ minHeight: '2.75rem' });
   });
 });
+

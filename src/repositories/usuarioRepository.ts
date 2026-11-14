@@ -50,3 +50,4 @@ export async function listarUsuariosAdmin(): Promise<UsuarioDoc[]> {
   const snapshot = await db.collection('usuarios').get();
   return snapshot.docs.map((doc) => doc.data() as UsuarioDoc);
 }
+

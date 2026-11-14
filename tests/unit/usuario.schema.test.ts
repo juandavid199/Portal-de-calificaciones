@@ -68,3 +68,4 @@ describe('crearUsuarioSchema - Validación de creación de usuarios (Admin)', ()
     expect(resultado.success).toBe(false);
   });
 });
+
