@@ -1,4 +1,6 @@
 import React from 'react';
+import Link from 'next/link';
+import { BotonVolver } from '@/components/common/BotonVolver';
 
 export const metadata = {
   title: 'Mis notas | 50 Portal de Calificaciones',
@@ -48,6 +50,32 @@ const NOTAS_ESTUDIANTE_DEMO: CursoEstudiante[] = [
 export default function PaginaMisNotasEstudiante() {
   return (
     <section aria-labelledby="titulo-mis-notas">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <nav aria-label="Ruta de navegación (Miga de pan)">
+          <ol
+            style={{
+              display: 'flex',
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              gap: '0.5rem',
+              fontSize: '0.875rem',
+              color: '#64748b',
+            }}
+          >
+            <li>
+              <Link href="/" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                Mis cursos
+              </Link>
+              <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
+            </li>
+            <li aria-current="page" style={{ fontWeight: 600, color: '#0f172a' }}>
+              Mis notas
+            </li>
+          </ol>
+        </nav>
+        <BotonVolver href="/" texto="Volver a mis cursos" />
+      </div>
       <header style={{ marginBottom: '2rem' }}>
         <h1
           id="titulo-mis-notas"

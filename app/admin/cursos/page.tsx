@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { BotonVolver } from '@/components/common/BotonVolver';
 
 interface CursoAdmin {
   id: string;
@@ -63,6 +65,52 @@ export default function PaginaAdminCursos() {
 
   return (
     <section aria-labelledby="titulo-admin-cursos">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <nav aria-label="Ruta de navegación (Miga de pan)">
+          <ol
+            style={{
+              display: 'flex',
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              gap: '0.5rem',
+              fontSize: '0.875rem',
+              color: '#64748b',
+            }}
+          >
+            <li>
+              <Link href="/" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                Inicio
+              </Link>
+              <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
+            </li>
+            <li aria-current="page" style={{ fontWeight: 600, color: '#0f172a' }}>
+              Administración de cursos
+            </li>
+          </ol>
+        </nav>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link
+            href="/admin/usuarios"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+              border: '1px solid #bfdbfe',
+              borderRadius: '0.375rem',
+              textDecoration: 'none',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              minHeight: '2.75rem',
+            }}
+          >
+            👥 Gestión de usuarios →
+          </Link>
+          <BotonVolver href="/" texto="Volver al inicio" />
+        </div>
+      </div>
       <header style={{ marginBottom: '2rem' }}>
         <h1
           id="titulo-admin-cursos"

@@ -79,7 +79,8 @@ describe('RootLayout - Landmarks Semánticos y Navegación Accesible', () => {
     expect(screen.getByRole('link', { name: /mis cursos/i })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: /mis notas/i })).toHaveAttribute('href', '/estudiante/notas');
     expect(screen.getByRole('link', { name: /gestión docente/i })).toHaveAttribute('href', '/docente/cursos/demo-1');
-    expect(screen.getByRole('link', { name: /administración/i })).toHaveAttribute('href', '/admin/cursos');
+    expect(screen.getByRole('link', { name: /administración de cursos/i })).toHaveAttribute('href', '/admin/cursos');
+    expect(screen.getByRole('link', { name: /gestión de usuarios/i })).toHaveAttribute('href', '/admin/usuarios');
   });
 
   it('permite alternar el menú móvil accesible mediante botón con aria-expanded', async () => {

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, use } from 'react';
 import Link from 'next/link';
+import { BotonVolver } from '@/components/common/BotonVolver';
 import { actividadesListSchema, type Actividad } from '@/schemas/notas.schema';
 
 interface PaginaActividadesProps {
@@ -80,35 +81,38 @@ export default function PaginaActividadesCurso({ params }: PaginaActividadesProp
 
   return (
     <section aria-labelledby="titulo-actividades">
-      <nav aria-label="Miga de pan" style={{ marginBottom: '1.5rem' }}>
-        <ol
-          style={{
-            display: 'flex',
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            gap: '0.5rem',
-            fontSize: '0.875rem',
-            color: '#64748b',
-          }}
-        >
-          <li>
-            <Link href="/" style={{ color: '#2563eb', textDecoration: 'none' }}>
-              Mis cursos
-            </Link>
-            <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
-          </li>
-          <li>
-            <Link href={`/docente/cursos/${cursoId}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
-              Planilla ({cursoId})
-            </Link>
-            <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
-          </li>
-          <li aria-current="page" style={{ fontWeight: 600, color: '#0f172a' }}>
-            Actividades y porcentajes
-          </li>
-        </ol>
-      </nav>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <nav aria-label="Miga de pan">
+          <ol
+            style={{
+              display: 'flex',
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              gap: '0.5rem',
+              fontSize: '0.875rem',
+              color: '#64748b',
+            }}
+          >
+            <li>
+              <Link href="/" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                Mis cursos
+              </Link>
+              <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
+            </li>
+            <li>
+              <Link href={`/docente/cursos/${cursoId}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+                Planilla ({cursoId})
+              </Link>
+              <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
+            </li>
+            <li aria-current="page" style={{ fontWeight: 600, color: '#0f172a' }}>
+              Actividades y porcentajes
+            </li>
+          </ol>
+        </nav>
+        <BotonVolver href={`/docente/cursos/${cursoId}`} texto="Volver a la planilla" />
+      </div>
 
       <header style={{ marginBottom: '2rem' }}>
         <h1

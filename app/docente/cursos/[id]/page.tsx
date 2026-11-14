@@ -2,6 +2,7 @@
 
 import React, { use } from 'react';
 import Link from 'next/link';
+import { BotonVolver } from '@/components/common/BotonVolver';
 import { usePlanillaNotas } from '@/hooks/usePlanillaNotas';
 import { PlanillaNotas } from '@/components/planilla/PlanillaNotas';
 import { PlanillaSkeleton } from '@/components/planilla/PlanillaSkeleton';
@@ -22,29 +23,32 @@ export default function PaginaPlanillaCurso({ params }: PaginaPlanillaProps) {
 
   return (
     <div>
-      <nav aria-label="Ruta de navegación (Miga de pan)" style={{ marginBottom: '1.5rem' }}>
-        <ol
-          style={{
-            display: 'flex',
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            gap: '0.5rem',
-            fontSize: '0.875rem',
-            color: '#64748b',
-          }}
-        >
-          <li>
-            <Link href="/" style={{ color: '#2563eb', textDecoration: 'none' }}>
-              Mis cursos
-            </Link>
-            <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
-          </li>
-          <li aria-current="page" style={{ fontWeight: 600, color: '#0f172a' }}>
-            Planilla de notas ({cursoId})
-          </li>
-        </ol>
-      </nav>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <nav aria-label="Ruta de navegación (Miga de pan)">
+          <ol
+            style={{
+              display: 'flex',
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              gap: '0.5rem',
+              fontSize: '0.875rem',
+              color: '#64748b',
+            }}
+          >
+            <li>
+              <Link href="/" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                Mis cursos
+              </Link>
+              <span aria-hidden="true" style={{ margin: '0 0.5rem' }}>/</span>
+            </li>
+            <li aria-current="page" style={{ fontWeight: 600, color: '#0f172a' }}>
+              Planilla de notas ({cursoId})
+            </li>
+          </ol>
+        </nav>
+        <BotonVolver href="/" texto="Volver a mis cursos" />
+      </div>
 
       {estado === 'loading' && <PlanillaSkeleton />}
       {estado === 'error' && (

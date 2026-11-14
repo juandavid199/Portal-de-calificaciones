@@ -54,6 +54,15 @@ Configuradas en [.vscode/settings.json](file:///c:/Users/Usuario/Downloads/marte
 * **Navegación Dinámica por Roles:** [src/components/layout/Navigation.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/src/components/layout/Navigation.tsx) adaptando la interfaz según `docente`, `estudiante` o `admin`.
 * **Evidencias de Calidad:** Consolidación de métricas de rendimiento, accesibilidad WCAG y retos en [calidad/CALIDAD.md](file:///c:/Users/Usuario/Downloads/martes_jueves/calidad/CALIDAD.md).
 
+### Hito 5: Navegación de Retroceso Accesible y Creación de Usuarios (Admin)
+* **Componente BotonVolver y Migas de Pan:** [src/components/common/BotonVolver.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/src/components/common/BotonVolver.tsx). Integrado en todas las subvistas con objetivos táctiles accesibles $\ge 44\text{ px}$ y contraste $> 7:1$. Pruebas en [tests/components/BotonVolver.test.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/tests/components/BotonVolver.test.tsx).
+* **Módulo de Gestión y Creación de Usuarios:**
+  - Esquema Zod en [src/schemas/usuario.schema.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/src/schemas/usuario.schema.ts). Pruebas en [tests/unit/usuario.schema.test.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/tests/unit/usuario.schema.test.ts).
+  - Repositorio y Servicio: [src/repositories/usuarioRepository.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/src/repositories/usuarioRepository.ts) y [src/services/usuarioService.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/src/services/usuarioService.ts) integrando Firebase Admin Auth (`createUser`, `setCustomUserClaims`) y persistencia en colección `usuarios` de Firestore.
+  - Endpoints REST: `POST /api/admin/usuarios` y `GET /api/admin/usuarios` en [app/api/admin/usuarios/route.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/app/api/admin/usuarios/route.ts) con autorización estricta para rol admin. Pruebas en [tests/api/adminUsuariosRoute.test.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/tests/api/adminUsuariosRoute.test.ts).
+  - Interfaz de Usuario: [app/admin/usuarios/page.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/app/admin/usuarios/page.tsx) con formulario accesible, anuncios `aria-live` y tabla de usuarios con insignias semánticas por rol.
+  - Navegación Principal: [src/components/layout/Navigation.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/src/components/layout/Navigation.tsx) con acceso directo para administradores.
+
 ---
 
 ## 4. Guía para Demostración en Vivo en la Sustentación

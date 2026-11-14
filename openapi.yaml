@@ -291,3 +291,57 @@ paths:
         '401':
           description: No autenticado
 
+  /admin/usuarios:
+    post:
+      summary: Crear un nuevo usuario con rol en Firebase Auth y Firestore
+      tags: [Administración]
+      security:
+        - CookieAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - correo
+                - nombre
+                - contrasena
+                - rol
+              properties:
+                correo:
+                  type: string
+                  format: email
+                  example: docente.nuevo@portal.edu.co
+                nombre:
+                  type: string
+                  example: Dra. Luisa Ortega
+                contrasena:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: ClaveSegura123
+                rol:
+                  type: string
+                  enum: [docente, estudiante, admin]
+                  example: docente
+      responses:
+        '201':
+          description: Usuario creado exitosamente con Custom Claims y documento Firestore
+        '400':
+          description: Datos inválidos
+        '403':
+          description: Exclusivo para administradores
+    get:
+      summary: Listar todos los usuarios del sistema registrados en Firestore
+      tags: [Administración]
+      security:
+        - CookieAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Listado de usuarios recuperado con éxito
+        '403':
+          description: Exclusivo para administradores
+

@@ -158,25 +158,46 @@ export function Navigation() {
 
               {/* Rutas exclusivas de Admin */}
               {rol === 'admin' && (
-                <li>
-                  <Link
-                    href="/admin/cursos"
-                    onClick={() => setAbierto(false)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      minHeight: '2.75rem',
-                      padding: '0.5rem 1rem',
-                      color: '#f8fafc',
-                      textDecoration: 'none',
-                      borderRadius: '0.375rem',
-                      fontSize: '1rem',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Administración
-                  </Link>
-                </li>
+                <>
+                  <li>
+                    <Link
+                      href="/admin/cursos"
+                      onClick={() => setAbierto(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        minHeight: '2.75rem',
+                        padding: '0.5rem 1rem',
+                        color: '#f8fafc',
+                        textDecoration: 'none',
+                        borderRadius: '0.375rem',
+                        fontSize: '1rem',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Administración de cursos
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/admin/usuarios"
+                      onClick={() => setAbierto(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        minHeight: '2.75rem',
+                        padding: '0.5rem 1rem',
+                        color: '#f8fafc',
+                        textDecoration: 'none',
+                        borderRadius: '0.375rem',
+                        fontSize: '1rem',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Gestión de usuarios
+                    </Link>
+                  </li>
+                </>
               )}
 
               <li style={{ borderTop: '1px solid #334155', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
