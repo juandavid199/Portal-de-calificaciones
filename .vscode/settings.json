@@ -1,0 +1,78 @@
+{
+  "permissions": {
+    "deny": [
+      "read_file(.env*)",
+      "read_file(**/.env*)",
+      "read_file(**/*.pem)",
+      "read_file(**/*.key)",
+      "read_file(**/*.cert)",
+      "read_file(../**)",
+      "write_file(../**)",
+      "read_file(~/**)",
+      "write_file(~/**)",
+      "command(vercel env pull)"
+    ],
+    "ask": [
+      "command(curl*)",
+      "command(wget*)",
+      "command(npm install*)",
+      "command(npm i*)",
+      "command(pnpm install*)",
+      "command(pnpm add*)",
+      "command(yarn add*)",
+      "command(git push*)"
+    ],
+    "allow": [
+      "read_file(./**)",
+      "write_file(./**)",
+      "command(npm test*)",
+      "command(npm run check)",
+      "command(npm run typecheck)",
+      "command(npm run lint)",
+      "command(npm run format:check)",
+      "command(git status*)",
+      "command(git diff*)"
+    ]
+  },
+  "permissionGrants": {
+    "deny": [
+      "read_file(.env*)",
+      "read_file(**/.env*)",
+      "read_file(**/*.pem)",
+      "read_file(**/*.key)",
+      "read_file(**/*.cert)",
+      "read_file(../**)",
+      "write_file(../**)",
+      "read_file(~/**)",
+      "write_file(~/**)",
+      "command(vercel env pull)"
+    ],
+    "ask": [
+      "command(curl*)",
+      "command(wget*)",
+      "command(npm install*)",
+      "command(npm i*)",
+      "command(pnpm install*)",
+      "command(pnpm add*)",
+      "command(yarn add*)",
+      "command(git push*)"
+    ],
+    "allow": [
+      "read_file(./**)",
+      "write_file(./**)",
+      "command(npm test*)",
+      "command(npm run check)",
+      "command(npm run typecheck)",
+      "command(npm run lint)",
+      "command(npm run format:check)",
+      "command(git status*)",
+      "command(git diff*)"
+    ]
+  },
+  "antigravity.security": {
+    "sandbox": "strict",
+    "restrictToWorkspace": true,
+    "blockParentTraversal": true
+  }
+}
+

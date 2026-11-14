@@ -1,0 +1,22 @@
+meta {
+  name: Cerrar curso (200 Exitoso)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/cursos/demo-1/cerrar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{docenteToken}}
+}
+
+body:json {
+  {
+    "confirmacion": true
+  }
+}
+

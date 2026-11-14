@@ -1,0 +1,16 @@
+meta {
+  name: Consultar notas del estudiante (200 Exitoso)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/estudiante/notas
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{estudianteToken}}
+}
+

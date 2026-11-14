@@ -1,0 +1,293 @@
+openapi: 3.0.3
+info:
+  title: 50 · Portal de Calificaciones API
+  description: >-
+    API REST para la gestión de notas académicas con permisos estrictos por rol y por objeto,
+    transacciones atómicas en Firestore y auditoría inmutable de cambios.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Servidor de desarrollo local
+  - url: https://50-portal-de-calificaciones.vercel.app/api
+    description: Entorno de producción en Vercel
+
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: sesion
+      description: Cookie de sesión HttpOnly verificada mediante Firebase Admin SDK.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: ID Token emitido por Firebase Auth en cabecera Authorization.
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: Error de validación
+        detalles:
+          type: array
+          items:
+            type: object
+            required:
+              - campo
+              - mensaje
+            properties:
+              campo:
+                type: string
+                example: cambios.0.valor
+              mensaje:
+                type: string
+                example: La nota máxima es 5.0
+
+    CambioNotaItem:
+      type: object
+      required:
+        - estudianteUid
+        - actividadId
+        - valor
+      properties:
+        estudianteUid:
+          type: string
+          example: est-101
+        actividadId:
+          type: string
+          example: act-1
+        valor:
+          type: number
+          nullable: true
+          minimum: 0.0
+          maximum: 5.0
+          multipleOf: 0.1
+          example: 4.5
+
+    ActualizarNotasLoteRequest:
+      type: object
+      required:
+        - cambios
+      properties:
+        cambios:
+          type: array
+          items:
+            $ref: '#/components/schemas/CambioNotaItem'
+        justificacion:
+          type: string
+          description: Obligatoria si el curso ya se encuentra cerrado.
+          example: Corrección de error de digitación en el examen parcial.
+
+    CerrarCursoRequest:
+      type: object
+      required:
+        - confirmacion
+      properties:
+        confirmacion:
+          type: boolean
+          example: true
+
+    SesionRequest:
+      type: object
+      required:
+        - idToken
+      properties:
+        idToken:
+          type: string
+          example: eyJhbGciOiJSUzI1NiIsImtpZCI6IjEyMyJ9...
+
+    UsuarioPerfil:
+      type: object
+      required:
+        - uid
+        - rol
+      properties:
+        uid:
+          type: string
+          example: usr-docente-01
+        correo:
+          type: string
+          example: docente@universidad.edu.co
+        rol:
+          type: string
+          enum: [docente, estudiante, admin]
+          example: docente
+
+paths:
+  /auth/sesion:
+    post:
+      summary: Iniciar sesión y crear cookie HttpOnly
+      tags: [Autenticación]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SesionRequest'
+      responses:
+        '200':
+          description: Sesión iniciada y cabecera Set-Cookie asignada
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: sesion=...; HttpOnly; Secure; SameSite=Lax
+        '400':
+          description: idToken faltante o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token no válido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Cerrar sesión
+      tags: [Autenticación]
+      responses:
+        '200':
+          description: Sesión cerrada y cookie eliminada
+
+  /auth/yo:
+    get:
+      summary: Consultar usuario autenticado
+      tags: [Autenticación]
+      security:
+        - CookieAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Datos del usuario en sesión
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario:
+                    $ref: '#/components/schemas/UsuarioPerfil'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cursos/{id}/notas:
+    put:
+      summary: Actualizar lote de notas con transacción y auditoría
+      tags: [Calificaciones]
+      security:
+        - CookieAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Identificador del curso
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActualizarNotasLoteRequest'
+      responses:
+        '200':
+          description: Notas actualizadas y definitivos recalculados en transacción
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                  modificados:
+                    type: integer
+                  definitivos:
+                    type: object
+                    additionalProperties:
+                      type: number
+                      nullable: true
+        '400':
+          description: Error de validación (nota fuera de rango 0.0-5.0 o más de un decimal)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Prohibido (usuario no es docente de este curso ni administrador)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Curso no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflicto (curso cerrado y falta justificación válida)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cursos/{id}/cerrar:
+    post:
+      summary: Cerrar calificaciones del curso
+      tags: [Cursos]
+      security:
+        - CookieAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CerrarCursoRequest'
+      responses:
+        '200':
+          description: Curso cerrado exitosamente
+        '403':
+          description: No es el docente titular del curso
+        '404':
+          description: Curso no encontrado
+        '409':
+          description: El curso ya estaba cerrado
+
+  /estudiante/notas:
+    get:
+      summary: Consultar notas del estudiante autenticado
+      tags: [Estudiantes]
+      security:
+        - CookieAuth: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de cursos y notas del estudiante
+        '401':
+          description: No autenticado
+

@@ -1,0 +1,16 @@
+meta {
+  name: Autenticación - Consultar Perfil Actual (200 Exitoso)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/auth/yo
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{docenteToken}}
+}
+

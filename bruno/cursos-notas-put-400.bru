@@ -1,0 +1,28 @@
+meta {
+  name: Actualizar notas - Error 400 Validación (Nota inválida)
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/cursos/demo-1/notas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{docenteToken}}
+}
+
+body:json {
+  {
+    "cambios": [
+      {
+        "estudianteUid": "est-001",
+        "actividadId": "act-1",
+        "valor": 5.5
+      }
+    ]
+  }
+}
+

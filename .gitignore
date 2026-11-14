@@ -1,0 +1,44 @@
+# ==========================================
+# 50 - Portal de Calificaciones
+# .gitignore
+# ==========================================
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js build and cache
+.next/
+out/
+build/
+dist/
+
+# Security: Environment variables and private keys
+# NUNCA subir archivos con credenciales ni llaves privadas
+.env*
+!.env.example
+!env.example
+*.pem
+*.key
+*.cert
+service-account*.json
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+

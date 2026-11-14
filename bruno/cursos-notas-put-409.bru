@@ -1,0 +1,28 @@
+meta {
+  name: Actualizar notas - Error 409 Conflicto (Curso cerrado sin justificación)
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/cursos/demo-cerrado/notas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{docenteToken}}
+}
+
+body:json {
+  {
+    "cambios": [
+      {
+        "estudianteUid": "est-001",
+        "actividadId": "act-1",
+        "valor": 4.0
+      }
+    ]
+  }
+}
+
