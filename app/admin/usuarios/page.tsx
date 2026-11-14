@@ -13,32 +13,9 @@ interface UsuarioItem {
   creadoEn: string;
 }
 
-const USUARIOS_DEMO_INICIALES: UsuarioItem[] = [
-  {
-    uid: 'demo-docente',
-    correo: 'docente@portal.edu.co',
-    nombre: 'Prof. Carlos Mendoza',
-    rol: 'docente',
-    creadoEn: '2026-11-14T10:00:00.000Z',
-  },
-  {
-    uid: 'demo-estudiante',
-    correo: 'estudiante@portal.edu.co',
-    nombre: 'Ana Sofía Gómez',
-    rol: 'estudiante',
-    creadoEn: '2026-11-14T10:05:00.000Z',
-  },
-  {
-    uid: 'demo-admin',
-    correo: 'admin@portal.edu.co',
-    nombre: 'Administrador Principal',
-    rol: 'admin',
-    creadoEn: '2026-11-14T09:00:00.000Z',
-  },
-];
-
 export default function PaginaAdminUsuarios() {
-  const [usuarios, setUsuarios] = useState<UsuarioItem[]>(USUARIOS_DEMO_INICIALES);
+  const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
@@ -46,19 +23,22 @@ export default function PaginaAdminUsuarios() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null);
 
-  // Cargar usuarios desde la API
+  // Cargar usuarios desde la API conectada a Firestore
   useEffect(() => {
     async function cargar() {
+      setCargando(true);
       try {
         const res = await fetch('/api/admin/usuarios', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.usuarios) && data.usuarios.length > 0) {
+          if (Array.isArray(data.usuarios)) {
             setUsuarios(data.usuarios);
           }
         }
       } catch {
-        // En entorno local o sin conexión usa la lista inicial
+        setMensaje({ tipo: 'error', texto: 'Error al conectar con la base de datos de usuarios.' });
+      } finally {
+        setCargando(false);
       }
     }
     cargar();
@@ -389,36 +369,50 @@ export default function PaginaAdminUsuarios() {
               </tr>
             </thead>
             <tbody>
-              {usuarios.map((u) => (
-                <tr key={u.uid} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#0f172a' }}>
-                    {u.nombre}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>
-                    {u.correo}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span
-                      style={{
-                        padding: '0.25rem 0.625rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        backgroundColor:
-                          u.rol === 'admin' ? '#fef3c7' : u.rol === 'docente' ? '#dbeafe' : '#dcfce7',
-                        color:
-                          u.rol === 'admin' ? '#92400e' : u.rol === 'docente' ? '#1e40af' : '#166534',
-                      }}
-                    >
-                      {u.rol}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748b' }}>
-                    {u.uid}
+              {cargando ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                    Cargando usuarios desde Firebase...
                   </td>
                 </tr>
-              ))}
+              ) : usuarios.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                    No hay usuarios registrados en Firestore. Utilice el formulario superior para registrar el primero o ejecute el seed.
+                  </td>
+                </tr>
+              ) : (
+                usuarios.map((u) => (
+                  <tr key={u.uid} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: '#0f172a' }}>
+                      {u.nombre}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>
+                      {u.correo}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span
+                        style={{
+                          padding: '0.25rem 0.625rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          backgroundColor:
+                            u.rol === 'admin' ? '#fef3c7' : u.rol === 'docente' ? '#dbeafe' : '#dcfce7',
+                          color:
+                            u.rol === 'admin' ? '#92400e' : u.rol === 'docente' ? '#1e40af' : '#166534',
+                        }}
+                      >
+                        {u.rol}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', fontFamily: 'monospace', fontSize: '0.75rem', color: '#64748b' }}>
+                      {u.uid}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

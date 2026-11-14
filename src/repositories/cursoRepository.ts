@@ -101,6 +101,47 @@ export async function obtenerPlanillaCursoDb(cursoId: string): Promise<PlanillaC
     };
   });
 
+  // Si no hay estudiantes en la subcolección, auto-descubrir estudiantes registrados en Firestore
+  if (estudiantes.length === 0) {
+    try {
+      const usuariosSnapshot = await db
+        .collection('usuarios')
+        .where('rol', '==', 'estudiante')
+        .get();
+
+      for (const uDoc of usuariosSnapshot.docs) {
+        const uData = uDoc.data();
+        const nuevoEst: PlanillaEstudiante = {
+          uid: uDoc.id,
+          nombre: uData.nombre || uData.correo || 'Estudiante',
+          notas: {},
+          definitivo: null,
+        };
+        estudiantes.push(nuevoEst);
+
+        // Guardar registro base en la subcolección de notas
+        await db
+          .collection('cursos')
+          .doc(cursoId)
+          .collection('notas')
+          .doc(uDoc.id)
+          .set(
+            {
+              estudianteUid: uDoc.id,
+              nombre: nuevoEst.nombre,
+              valores: {},
+              definitivo: null,
+              actualizadoEn: new Date().toISOString(),
+            },
+            { merge: true }
+          )
+          .catch(() => null);
+      }
+    } catch {
+      // Continuar con lista actual
+    }
+  }
+
   return {
     curso: curso.nombre,
     cerrado: curso.cerrado,

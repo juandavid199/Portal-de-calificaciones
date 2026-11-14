@@ -104,19 +104,26 @@ export async function guardarActividadesCurso(
  * Crea un nuevo curso académico en Firestore (RF-01 Admin).
  */
 export async function registrarCurso(
-  datos: { nombre: string; docenteUid: string; docenteNombre?: string; periodo: string; actividades?: Actividad[] },
+  datos: {
+    nombre: string;
+    docenteUid: string;
+    docenteNombre?: string;
+    periodo: string;
+    actividades?: Actividad[];
+  },
   esAdmin: boolean
 ): Promise<string> {
   if (!esAdmin) {
     throw new ForbiddenError('Solo los administradores pueden crear nuevos cursos académicos.');
   }
 
-  const actividades = datos.actividades && datos.actividades.length > 0
-    ? datos.actividades
-    : [
-        { id: `act-1`, nombre: 'Actividad 1: Seguimiento', porcentaje: 50 },
-        { id: `act-2`, nombre: 'Actividad 2: Evaluación Final', porcentaje: 50 },
-      ];
+  const actividades =
+    datos.actividades && datos.actividades.length > 0
+      ? datos.actividades
+      : [
+          { id: `act-1`, nombre: 'Actividad 1: Seguimiento', porcentaje: 50 },
+          { id: `act-2`, nombre: 'Actividad 2: Evaluación Final', porcentaje: 50 },
+        ];
 
   const id = await crearCursoEnDb({
     nombre: datos.nombre,

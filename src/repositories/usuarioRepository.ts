@@ -43,11 +43,39 @@ export async function crearUsuarioAdmin(datos: CrearUsuarioInput): Promise<Usuar
 }
 
 /**
- * Retorna todos los usuarios registrados en Firestore.
+ * Retorna todos los usuarios registrados en Firestore sincronizados con Firebase Auth.
  */
 export async function listarUsuariosAdmin(): Promise<UsuarioDoc[]> {
   const db = obtenerAdminDb();
+  const auth = obtenerAdminAuth();
+
   const snapshot = await db.collection('usuarios').get();
-  return snapshot.docs.map((doc) => doc.data() as UsuarioDoc);
+  const mapaUsuarios = new Map<string, UsuarioDoc>();
+
+  snapshot.docs.forEach((doc) => {
+    mapaUsuarios.set(doc.id, doc.data() as UsuarioDoc);
+  });
+
+  try {
+    const authUsers = await auth.listUsers(100);
+    for (const u of authUsers.users) {
+      if (!mapaUsuarios.has(u.uid)) {
+        const rolClaim = (u.customClaims?.rol as RolUsuario) || 'estudiante';
+        const docNuevo: UsuarioDoc = {
+          uid: u.uid,
+          correo: u.email || '',
+          nombre: u.displayName || u.email?.split('@')[0] || 'Usuario',
+          rol: rolClaim,
+          creadoEn: u.metadata?.creationTime || new Date().toISOString(),
+        };
+        await db.collection('usuarios').doc(u.uid).set(docNuevo, { merge: true }).catch(() => null);
+        mapaUsuarios.set(u.uid, docNuevo);
+      }
+    }
+  } catch {
+    // Si no hay permisos de listUsers, retornar los de Firestore
+  }
+
+  return Array.from(mapaUsuarios.values());
 }
 

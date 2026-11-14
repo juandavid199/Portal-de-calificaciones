@@ -86,3 +86,4 @@ describe('API /api/cursos - Listar y Crear Cursos', () => {
     expect(res.status).toBe(403);
   });
 });
+
