@@ -23,7 +23,7 @@ interface PlanillaNotasProps {
  * - Recálculo reactivo del definitivo ponderado con aritmética exacta vía useMemo.
  * - Validación por celda con Zod y anuncios accesibles vía aria-live.
  */
-export function PlanillaNotas({ datos, onGuardarLote }: PlanillaNotasProps) {
+export function PlanillaNotas({ datos, onGuardarLote: _onGuardarLote }: PlanillaNotasProps) {
   const [estudiantes, setEstudiantes] = useState<EstudiantePlanilla[]>(datos.estudiantes);
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
   const [anuncioLive, setAnuncioLive] = useState<string>('');

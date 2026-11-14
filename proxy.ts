@@ -14,7 +14,8 @@ export function proxy(request: NextRequest) {
   // Rutas públicas exceptuadas
   const esRutaPublica =
     pathname === '/login' ||
-    pathname.startsWith('/_next') ||
+    pathname === '/_not-found' ||
+    pathname.startsWith('/_') ||
     pathname.startsWith('/api/auth') ||
     pathname === '/favicon.ico';
 
@@ -36,7 +37,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|_not-found|favicon.ico).*)'],
 };
 
 export default proxy;
