@@ -3,6 +3,7 @@ import { SkipLink } from '@/components/layout/SkipLink';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { AuthProvider } from '@/context/AuthContext';
+import { RouteGuard } from '@/components/auth/RouteGuard';
 
 export const metadata = {
   title: '50 · Portal de Calificaciones',
@@ -42,7 +43,7 @@ export default function RootLayout({
               boxSizing: 'border-box',
             }}
           >
-            {children}
+            <RouteGuard>{children}</RouteGuard>
           </main>
           <Footer />
         </AuthProvider>

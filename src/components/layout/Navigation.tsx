@@ -5,11 +5,9 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
 /**
- * Componente de navegación accesible y dinámico según el rol:
- * - Mobile-first con botón hamburguesa accesible (<button aria-expanded>).
- * - Cierre accesible con tecla Escape y foco visible.
- * - Dimensiones mínimas de toque de 44x44px en móviles.
- * - Oculta / muestra destinos según el rol del usuario (estudiante, docente, admin).
+ * Componente de navegación accesible y dinámico según autenticación y rol:
+ * - Si NO ha iniciado sesión: Solo muestra el botón "Iniciar sesión".
+ * - Si YA inició sesión: Muestra las rutas correspondientes a su rol (estudiante, docente, admin).
  */
 export function Navigation() {
   const { usuario, rol, cerrarSesion } = useAuth();
@@ -87,122 +85,128 @@ export function Navigation() {
             gap: '0.5rem',
           }}
         >
-          <li>
-            <Link
-              href="/"
-              onClick={() => setAbierto(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                minHeight: '2.75rem',
-                padding: '0.5rem 1rem',
-                color: '#f8fafc',
-                textDecoration: 'none',
-                borderRadius: '0.375rem',
-                fontSize: '1rem',
-                fontWeight: 500,
-              }}
-            >
-              Mis cursos
-            </Link>
-          </li>
+          {/* Si el usuario ha iniciado sesión, mostrar las rutas del portal */}
+          {usuario ? (
+            <>
+              <li>
+                <Link
+                  href="/"
+                  onClick={() => setAbierto(false)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    minHeight: '2.75rem',
+                    padding: '0.5rem 1rem',
+                    color: '#f8fafc',
+                    textDecoration: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '1rem',
+                    fontWeight: 500,
+                  }}
+                >
+                  Mis cursos
+                </Link>
+              </li>
 
-          {/* Rutas para rol Estudiante o Admin */}
-          {(!rol || rol === 'estudiante' || rol === 'admin') && (
+              {/* Rutas para rol Estudiante o Admin */}
+              {(!rol || rol === 'estudiante' || rol === 'admin') && (
+                <li>
+                  <Link
+                    href="/estudiante/notas"
+                    onClick={() => setAbierto(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      minHeight: '2.75rem',
+                      padding: '0.5rem 1rem',
+                      color: '#f8fafc',
+                      textDecoration: 'none',
+                      borderRadius: '0.375rem',
+                      fontSize: '1rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Mis notas
+                  </Link>
+                </li>
+              )}
+
+              {/* Rutas para rol Docente o Admin */}
+              {(rol === 'docente' || rol === 'admin') && (
+                <li>
+                  <Link
+                    href="/docente/cursos/demo-1"
+                    onClick={() => setAbierto(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      minHeight: '2.75rem',
+                      padding: '0.5rem 1rem',
+                      color: '#f8fafc',
+                      textDecoration: 'none',
+                      borderRadius: '0.375rem',
+                      fontSize: '1rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Gestión docente
+                  </Link>
+                </li>
+              )}
+
+              {/* Rutas exclusivas de Admin */}
+              {rol === 'admin' && (
+                <li>
+                  <Link
+                    href="/admin/cursos"
+                    onClick={() => setAbierto(false)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      minHeight: '2.75rem',
+                      padding: '0.5rem 1rem',
+                      color: '#f8fafc',
+                      textDecoration: 'none',
+                      borderRadius: '0.375rem',
+                      fontSize: '1rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Administración
+                  </Link>
+                </li>
+              )}
+
+              <li style={{ borderTop: '1px solid #334155', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setAbierto(false);
+                    await cerrarSesion();
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    display: 'flex',
+                    alignItems: 'center',
+                    minHeight: '2.75rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'transparent',
+                    color: '#f87171',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cerrar sesión ({usuario.correo || usuario.uid})
+                </button>
+              </li>
+            </>
+          ) : (
+            /* Si NO ha iniciado sesión, solo mostrar opción de login */
             <li>
-              <Link
-                href="/estudiante/notas"
-                onClick={() => setAbierto(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  minHeight: '2.75rem',
-                  padding: '0.5rem 1rem',
-                  color: '#f8fafc',
-                  textDecoration: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                }}
-              >
-                Mis notas
-              </Link>
-            </li>
-          )}
-
-          {/* Rutas para rol Docente o Admin */}
-          {(rol === 'docente' || rol === 'admin') && (
-            <li>
-              <Link
-                href="/docente/cursos/demo-1"
-                onClick={() => setAbierto(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  minHeight: '2.75rem',
-                  padding: '0.5rem 1rem',
-                  color: '#f8fafc',
-                  textDecoration: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                }}
-              >
-                Gestión docente
-              </Link>
-            </li>
-          )}
-
-          {/* Rutas exclusivas de Admin */}
-          {rol === 'admin' && (
-            <li>
-              <Link
-                href="/admin/cursos"
-                onClick={() => setAbierto(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  minHeight: '2.75rem',
-                  padding: '0.5rem 1rem',
-                  color: '#f8fafc',
-                  textDecoration: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                }}
-              >
-                Administración
-              </Link>
-            </li>
-          )}
-
-          <li style={{ borderTop: '1px solid #334155', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
-            {usuario ? (
-              <button
-                type="button"
-                onClick={async () => {
-                  setAbierto(false);
-                  await cerrarSesion();
-                }}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  minHeight: '2.75rem',
-                  padding: '0.5rem 1rem',
-                  backgroundColor: 'transparent',
-                  color: '#f87171',
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Cerrar sesión ({usuario.correo || usuario.uid})
-              </button>
-            ) : (
               <Link
                 href="/login"
                 onClick={() => setAbierto(false)}
@@ -220,8 +224,8 @@ export function Navigation() {
               >
                 Iniciar sesión
               </Link>
-            )}
-          </li>
+            </li>
+          )}
         </ul>
       </div>
     </nav>

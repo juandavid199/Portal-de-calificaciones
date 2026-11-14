@@ -42,6 +42,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# TypeScript
+*.tsbuildinfo
+
 # Local development / Seed scripts
 scripts/
 

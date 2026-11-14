@@ -2,36 +2,41 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 /**
  * Proxy / Middleware de navegación de Next.js (Edge):
- * - Redirige a /login si falta la cookie 'sesion' en rutas protegidas.
- * - NOTA DE ARQUITECTURA: Este proxy es una mejora de experiencia de usuario (UX).
- *   La seguridad real y criptográfica se valida en cada Route Handler con requerirUsuario().
+ * - BLOQUEO TOTAL: Ninguna vista puede ser visualizada sin iniciar sesión.
+ * - Toda ruta (incluyendo '/') redirige inmediatamente a /login si no hay cookie de sesión activa.
+ * - Si el usuario ya tiene sesión activa e ingresa a /login, es redirigido a '/'.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookieSesion = request.cookies.get('sesion');
+  const estaAutenticado = Boolean(cookieSesion?.value);
 
-  // Comprobar si es una ruta protegida
-  const esRutaProtegida =
-    pathname.startsWith('/estudiante') ||
-    pathname.startsWith('/docente') ||
-    pathname.startsWith('/admin');
+  // Rutas públicas exceptuadas
+  const esRutaPublica =
+    pathname === '/login' ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/auth') ||
+    pathname === '/favicon.ico';
 
-  if (esRutaProtegida && !cookieSesion?.value) {
+  // 1. Si NO está autenticado y busca acceder a cualquier página o vista de la app:
+  if (!estaAutenticado && !esRutaPublica && !pathname.startsWith('/api')) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    if (pathname !== '/') {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 2. Si YA está autenticado e intenta ir a la pantalla de login:
+  if (estaAutenticado && pathname === '/login') {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    '/estudiante/:path*',
-    '/docente/:path*',
-    '/admin/:path*',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
 
 export default proxy;
-

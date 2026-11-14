@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { RolUsuario } from '@/lib/auth';
@@ -34,13 +34,15 @@ const CURSOS_DEMO: CursoItem[] = [
 ];
 
 export default function PaginaMisCursos() {
-  const { usuario, rol: rolAuth } = useAuth();
-  // Permite conmutar el rol para pruebas/demostración si no hay usuario autenticado o para cambiar de perspectiva
-  const [rolSimulado, setRolSimulado] = useState<RolUsuario>('docente');
+  const { usuario, rol, cargando } = useAuth();
 
-  const rolActivo: RolUsuario = rolAuth || rolSimulado;
+  if (cargando || !usuario) {
+    return null;
+  }
 
-  // Filtrar los cursos según el rol activo
+  const rolActivo: RolUsuario = rol || 'estudiante';
+
+  // Filtrar los cursos según el rol real y autenticado del usuario
   const cursosFiltrados = CURSOS_DEMO.filter((c) => {
     if (rolActivo === 'admin') return true;
     return c.rol === rolActivo;
@@ -48,15 +50,15 @@ export default function PaginaMisCursos() {
 
   return (
     <section aria-labelledby="titulo-mis-cursos">
-      {/* Barra de Conmutación de Roles para Sustentación y Pruebas */}
+      {/* Indicador de rol del usuario autenticado */}
       <div
-        role="region"
-        aria-label="Selector de rol para demostración"
+        role="status"
+        aria-label="Información de sesión activa"
         style={{
           display: 'flex',
-          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
           gap: '1rem',
           padding: '0.875rem 1.25rem',
           backgroundColor: '#ffffff',
@@ -67,34 +69,25 @@ export default function PaginaMisCursos() {
         }}
       >
         <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-          Vista activa del sistema:
+          Sesión activa: <strong style={{ color: '#0f172a' }}>{usuario.correo || usuario.uid}</strong>
         </span>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {(['docente', 'estudiante', 'admin'] as RolUsuario[]).map((r) => {
-            const esActivo = rolActivo === r;
-            const iconos = { docente: '👨‍🏫 Docente', estudiante: '👨‍🎓 Estudiante', admin: '🛡️ Administrador' };
-            return (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRolSimulado(r)}
-                style={{
-                  padding: '0.375rem 0.875rem',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  fontWeight: esActivo ? 700 : 500,
-                  backgroundColor: esActivo ? '#1e293b' : '#f1f5f9',
-                  color: esActivo ? '#ffffff' : '#475569',
-                  border: esActivo ? '1px solid #0f172a' : '1px solid #cbd5e1',
-                  cursor: 'pointer',
-                  minHeight: '2.5rem',
-                }}
-              >
-                {iconos[r]}
-              </button>
-            );
-          })}
-        </div>
+        <span
+          style={{
+            padding: '0.25rem 0.75rem',
+            borderRadius: '9999px',
+            fontSize: '0.8125rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            backgroundColor:
+              rolActivo === 'admin' ? '#fef3c7' : rolActivo === 'docente' ? '#dbeafe' : '#dcfce7',
+            color:
+              rolActivo === 'admin' ? '#92400e' : rolActivo === 'docente' ? '#1e40af' : '#166534',
+          }}
+        >
+          {rolActivo === 'admin' && '🛡️ Administrador'}
+          {rolActivo === 'docente' && '👨‍🏫 Docente'}
+          {rolActivo === 'estudiante' && '👨‍🎓 Estudiante'}
+        </span>
       </div>
 
       <header style={{ marginBottom: '2rem' }}>
@@ -201,7 +194,7 @@ export default function PaginaMisCursos() {
                   textTransform: 'uppercase',
                 }}
               >
-                {rolActivo}
+                {curso.rol}
               </span>
               <h2
                 style={{
