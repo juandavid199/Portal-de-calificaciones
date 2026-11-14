@@ -10,6 +10,7 @@ export interface CursoDocumento {
   periodo: string;
   cerrado: boolean;
   actividades: Actividad[];
+  matriculados?: number;
   creadoEn: string;
 }
 
@@ -52,7 +53,7 @@ export async function obtenerCursoPorId(id: string): Promise<CursoDocumento> {
 }
 
 /**
- * Lista cursos de Firestore con filtro opcional de docente.
+ * Lista cursos de Firestore con filtro opcional de docente y conteo real de matriculados.
  */
 export async function listarCursosDb(filtroDocenteUid?: string): Promise<CursoDocumento[]> {
   const db = obtenerAdminDb();
@@ -63,19 +64,25 @@ export async function listarCursosDb(filtroDocenteUid?: string): Promise<CursoDo
   }
 
   const snapshot = await query.get();
-  return snapshot.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      nombre: data.nombre,
-      docenteUid: data.docenteUid,
-      docenteNombre: data.docenteNombre || data.docente || 'Docente asignado',
-      periodo: data.periodo,
-      cerrado: Boolean(data.cerrado),
-      actividades: data.actividades || [],
-      creadoEn: data.creadoEn || new Date().toISOString(),
-    };
-  });
+  const cursos = await Promise.all(
+    snapshot.docs.map(async (doc) => {
+      const data = doc.data();
+      const notasSnapshot = await doc.ref.collection('notas').get();
+      return {
+        id: doc.id,
+        nombre: data.nombre,
+        docenteUid: data.docenteUid,
+        docenteNombre: data.docenteNombre || data.docente || 'Docente asignado',
+        periodo: data.periodo,
+        cerrado: Boolean(data.cerrado),
+        actividades: data.actividades || [],
+        matriculados: notasSnapshot.size,
+        creadoEn: data.creadoEn || new Date().toISOString(),
+      };
+    })
+  );
+
+  return cursos;
 }
 
 /**
@@ -196,4 +203,118 @@ export async function crearCursoEnDb(curso: Omit<CursoDocumento, 'id'>): Promise
   const db = obtenerAdminDb();
   const ref = await db.collection('cursos').add(curso);
   return ref.id;
+}
+
+/**
+ * Reasigna el docente titular de un curso en Firestore.
+ */
+export async function asignarDocenteACursoDb(
+  cursoId: string,
+  docenteUid: string,
+  docenteNombre: string
+): Promise<void> {
+  const db = obtenerAdminDb();
+  const cursoRef = db.collection('cursos').doc(cursoId);
+  const doc = await cursoRef.get();
+
+  if (!doc.exists) {
+    throw new NotFoundError(`El curso con ID "${cursoId}" no existe.`);
+  }
+
+  await cursoRef.update({
+    docenteUid,
+    docenteNombre,
+    actualizadoEn: new Date().toISOString(),
+  });
+}
+
+/**
+ * Matricula a un estudiante en un curso en Firestore.
+ */
+export async function matricularEstudianteEnCursoDb(
+  cursoId: string,
+  estudianteUid: string,
+  estudianteNombre: string
+): Promise<void> {
+  const db = obtenerAdminDb();
+  const cursoRef = db.collection('cursos').doc(cursoId);
+  const doc = await cursoRef.get();
+
+  if (!doc.exists) {
+    throw new NotFoundError(`El curso con ID "${cursoId}" no existe.`);
+  }
+
+  const notaDocRef = cursoRef.collection('notas').doc(estudianteUid);
+  await notaDocRef.set(
+    {
+      estudianteUid,
+      nombre: estudianteNombre,
+      valores: {},
+      definitivo: null,
+      matriculadoEn: new Date().toISOString(),
+    },
+    { merge: true }
+  );
+}
+
+/**
+ * Desmatricula a un estudiante de un curso en Firestore.
+ */
+export async function desmatricularEstudianteDeCursoDb(
+  cursoId: string,
+  estudianteUid: string
+): Promise<void> {
+  const db = obtenerAdminDb();
+  const notaDocRef = db.collection('cursos').doc(cursoId).collection('notas').doc(estudianteUid);
+  await notaDocRef.delete();
+}
+
+/**
+ * Retorna los estudiantes matriculados en el curso y la lista de estudiantes disponibles para matricular.
+ */
+export async function obtenerDetalleMatriculasCursoDb(cursoId: string) {
+  const curso = await obtenerCursoPorId(cursoId);
+  const db = obtenerAdminDb();
+
+  // 1. Obtener notas/estudiantes matriculados
+  const notasSnapshot = await db
+    .collection('cursos')
+    .doc(cursoId)
+    .collection('notas')
+    .get();
+
+  const matriculados = notasSnapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      nombre: data.nombre || `Estudiante (${doc.id.substring(0, 6)})`,
+      matriculadoEn: data.matriculadoEn || data.actualizadoEn || '',
+    };
+  });
+
+  const uidsMatriculados = new Set(matriculados.map((m) => m.uid));
+
+  // 2. Obtener todos los usuarios con rol 'estudiante' en Firestore
+  const usuariosSnapshot = await db
+    .collection('usuarios')
+    .where('rol', '==', 'estudiante')
+    .get();
+
+  const disponibles: { uid: string; nombre: string; correo: string }[] = [];
+  usuariosSnapshot.docs.forEach((doc) => {
+    if (!uidsMatriculados.has(doc.id)) {
+      const data = doc.data();
+      disponibles.push({
+        uid: doc.id,
+        nombre: data.nombre || data.correo || 'Estudiante',
+        correo: data.correo || '',
+      });
+    }
+  });
+
+  return {
+    curso,
+    matriculados,
+    disponibles,
+  };
 }

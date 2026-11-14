@@ -5,6 +5,10 @@ import {
   obtenerPlanillaCursoDb,
   actualizarActividadesCursoDb,
   crearCursoEnDb,
+  asignarDocenteACursoDb,
+  matricularEstudianteEnCursoDb,
+  desmatricularEstudianteDeCursoDb,
+  obtenerDetalleMatriculasCursoDb,
   type CursoDocumento,
   type PlanillaCursoDatos,
 } from '@/repositories/cursoRepository';
@@ -136,4 +140,58 @@ export async function registrarCurso(
   });
 
   return id;
+}
+
+/**
+ * Permite a un administrador asignar o cambiar el docente titular de un curso (RF-01).
+ */
+export async function asignarDocenteCurso(
+  cursoId: string,
+  docenteUid: string,
+  docenteNombre: string,
+  esAdmin: boolean
+): Promise<void> {
+  if (!esAdmin) {
+    throw new ForbiddenError('Solo los administradores pueden asignar docentes a un curso.');
+  }
+  await asignarDocenteACursoDb(cursoId, docenteUid, docenteNombre);
+}
+
+/**
+ * Permite a un administrador matricular a un estudiante en un curso (RF-01).
+ */
+export async function matricularEstudiante(
+  cursoId: string,
+  estudianteUid: string,
+  estudianteNombre: string,
+  esAdmin: boolean
+): Promise<void> {
+  if (!esAdmin) {
+    throw new ForbiddenError('Solo los administradores pueden matricular estudiantes.');
+  }
+  await matricularEstudianteEnCursoDb(cursoId, estudianteUid, estudianteNombre);
+}
+
+/**
+ * Permite a un administrador desmatricular a un estudiante de un curso (RF-01).
+ */
+export async function desmatricularEstudiante(
+  cursoId: string,
+  estudianteUid: string,
+  esAdmin: boolean
+): Promise<void> {
+  if (!esAdmin) {
+    throw new ForbiddenError('Solo los administradores pueden desmatricular estudiantes.');
+  }
+  await desmatricularEstudianteDeCursoDb(cursoId, estudianteUid);
+}
+
+/**
+ * Obtiene el estado de matrículas y estudiantes disponibles para un curso.
+ */
+export async function consultarMatriculasCurso(cursoId: string, esAdmin: boolean) {
+  if (!esAdmin) {
+    throw new ForbiddenError('Solo los administradores pueden consultar el detalle de matrículas.');
+  }
+  return await obtenerDetalleMatriculasCursoDb(cursoId);
 }
