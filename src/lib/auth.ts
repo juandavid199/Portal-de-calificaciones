@@ -48,8 +48,12 @@ export async function requerirUsuario(
     let decodedToken;
 
     if (esCookie) {
-      // Validar cookie de sesión mediante verificación criptográfica local ultra-rápida
-      decodedToken = await auth.verifySessionCookie(tokenOId, false);
+      // Validar cookie mediante verificación criptográfica local ultra-rápida (soporta sessionCookie e idToken)
+      try {
+        decodedToken = await auth.verifySessionCookie(tokenOId, false);
+      } catch {
+        decodedToken = await auth.verifyIdToken(tokenOId, false);
+      }
     } else {
       // Validar idToken directo
       decodedToken = await auth.verifyIdToken(tokenOId, false);

@@ -15,14 +15,10 @@ export default function PaginaLogin() {
   const [enviando, setEnviando] = useState(false);
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
 
-  // Si ya tiene sesión activa, redirigir automáticamente
+  // Si ya tiene sesión activa, redirigir de forma instantánea mediante el router
   useEffect(() => {
     if (!cargando && usuario) {
-      if (typeof window !== 'undefined') {
-        window.location.href = redirectTarget;
-      } else {
-        router.replace(redirectTarget);
-      }
+      router.replace(redirectTarget);
     }
   }, [cargando, usuario, redirectTarget, router]);
 
@@ -43,12 +39,8 @@ export default function PaginaLogin() {
     setEnviando(true);
     try {
       await iniciarSesion(correo.trim(), contrasena);
-      // Redirección directa para que el navegador envíe de inmediato la cookie de sesión
-      if (typeof window !== 'undefined') {
-        window.location.href = redirectTarget;
-      } else {
-        router.replace(redirectTarget);
-      }
+      // Redirección SPA instantánea con el router de Next.js
+      router.replace(redirectTarget);
     } catch (err: unknown) {
       setEnviando(false);
       let msg = err instanceof Error ? err.message : 'Error al autenticar';
