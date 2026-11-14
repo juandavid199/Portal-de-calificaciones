@@ -87,9 +87,10 @@ export function Navigation() {
             gap: '0.5rem',
           }}
         >
-          {/* Si el usuario ha iniciado sesión, mostrar las rutas del portal */}
+          {/* Menú según el rol estricto del usuario */}
           {usuario ? (
             <>
+              {/* Inicio / Mis cursos */}
               <li>
                 <Link
                   href="/"
@@ -106,12 +107,12 @@ export function Navigation() {
                     fontWeight: 500,
                   }}
                 >
-                  Mis cursos
+                  {rol === 'admin' ? 'Panel de administración' : 'Mis cursos'}
                 </Link>
               </li>
 
-              {/* Rutas para rol Estudiante o Admin */}
-              {(!rol || rol === 'estudiante' || rol === 'admin') && (
+              {/* Rutas exclusivas para rol Estudiante */}
+              {rol === 'estudiante' && (
                 <li>
                   <Link
                     href="/estudiante/notas"
@@ -133,8 +134,8 @@ export function Navigation() {
                 </li>
               )}
 
-              {/* Rutas para rol Docente o Admin */}
-              {(rol === 'docente' || rol === 'admin') && (
+              {/* Rutas exclusivas para rol Docente */}
+              {rol === 'docente' && (
                 <li>
                   <Link
                     href="/docente/cursos/demo-1"
@@ -156,7 +157,7 @@ export function Navigation() {
                 </li>
               )}
 
-              {/* Rutas exclusivas de Admin */}
+              {/* Rutas exclusivas para rol Admin */}
               {rol === 'admin' && (
                 <>
                   <li>

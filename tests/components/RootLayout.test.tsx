@@ -76,11 +76,12 @@ describe('RootLayout - Landmarks Semánticos y Navegación Accesible', () => {
     const menuButton = screen.getByRole('button', { name: /menú de navegación/i });
     await user.click(menuButton);
 
-    expect(screen.getByRole('link', { name: /mis cursos/i })).toHaveAttribute('href', '/');
-    expect(screen.getByRole('link', { name: /mis notas/i })).toHaveAttribute('href', '/estudiante/notas');
-    expect(screen.getByRole('link', { name: /gestión docente/i })).toHaveAttribute('href', '/docente/cursos/demo-1');
+    expect(screen.getByRole('link', { name: /panel de administración/i })).toHaveAttribute('href', '/');
     expect(screen.getByRole('link', { name: /administración de cursos/i })).toHaveAttribute('href', '/admin/cursos');
     expect(screen.getByRole('link', { name: /gestión de usuarios/i })).toHaveAttribute('href', '/admin/usuarios');
+    // El rol admin NO debe ver opciones de estudiante ("Mis notas") ni de docente ("Gestión docente")
+    expect(screen.queryByRole('link', { name: /mis notas/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /gestión docente/i })).not.toBeInTheDocument();
   });
 
   it('permite alternar el menú móvil accesible mediante botón con aria-expanded', async () => {
