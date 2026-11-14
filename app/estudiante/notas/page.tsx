@@ -1,53 +1,45 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { BotonVolver } from '@/components/common/BotonVolver';
 
-export const metadata = {
-  title: 'Mis notas | 50 Portal de Calificaciones',
-};
-
-interface NotaDetalle {
-  actividad: string;
-  porcentaje: number;
-  valor: number | null;
-}
-
-interface CursoEstudiante {
-  id: string;
-  nombre: string;
-  docente: string;
+interface NotaCursoItem {
+  cursoId: string;
+  cursoNombre: string;
   periodo: string;
-  notas: NotaDetalle[];
+  cerrado: boolean;
+  actividades: { id: string; nombre: string; porcentaje: number }[];
+  valores: Record<string, number | null>;
   definitivo: number | null;
 }
 
-const NOTAS_ESTUDIANTE_DEMO: CursoEstudiante[] = [
-  {
-    id: 'curso-1',
-    nombre: 'Arquitectura de Software y Seguridad',
-    docente: 'Ing. Alejandro Gómez',
-    periodo: '2026-2',
-    notas: [
-      { actividad: 'Taller 1: Threat Modeling', porcentaje: 30, valor: 4.5 },
-      { actividad: 'Parcial 1: Criptografía y Auth', porcentaje: 30, valor: 4.0 },
-      { actividad: 'Proyecto Final: Hardening', porcentaje: 40, valor: 4.8 },
-    ],
-    definitivo: 4.5,
-  },
-  {
-    id: 'curso-2',
-    nombre: 'Bases de Datos Distribuidas',
-    docente: 'Dra. María Fernández',
-    periodo: '2026-2',
-    notas: [
-      { actividad: 'Laboratorio Firestore', porcentaje: 40, valor: 3.8 },
-      { actividad: 'Examen de Consistencia', porcentaje: 60, valor: null },
-    ],
-    definitivo: null,
-  },
-];
-
 export default function PaginaMisNotasEstudiante() {
+  const [cursos, setCursos] = useState<NotaCursoItem[]>([]);
+  const [cargando, setCargando] = useState<boolean>(true);
+  const [errorMensaje, setErrorMensaje] = useState<string | null>(null);
+
+  const cargarNotas = useCallback(async () => {
+    setCargando(true);
+    setErrorMensaje(null);
+    try {
+      const res = await fetch('/api/estudiante/notas');
+      if (!res.ok) {
+        throw new Error('No se pudieron obtener las calificaciones desde Firestore.');
+      }
+      const data = await res.json();
+      setCursos(data.items || []);
+    } catch (err: unknown) {
+      setErrorMensaje(err instanceof Error ? err.message : 'Error inesperado al cargar notas');
+    } finally {
+      setCargando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarNotas();
+  }, [cargarNotas]);
+
   return (
     <section aria-labelledby="titulo-mis-notas">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -86,17 +78,75 @@ export default function PaginaMisNotasEstudiante() {
             marginBottom: '0.5rem',
           }}
         >
-          Mis notas por curso
+          Mis calificaciones académicas
         </h1>
         <p style={{ color: '#475569', fontSize: '1rem', maxWidth: '65ch', margin: 0 }}>
-          Consulte el detalle de calificaciones y definitivos ponderados de sus cursos matriculados.
+          Consulte sus notas en tiempo real y definitivos ponderados registrados en Firestore.
         </p>
       </header>
 
+      {cargando && (
+        <div role="status" aria-live="polite" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+          Consultando calificaciones en Firestore...
+        </div>
+      )}
+
+      {errorMensaje && (
+        <div
+          role="alert"
+          style={{
+            padding: '1rem',
+            backgroundColor: '#fee2e2',
+            color: '#991b1b',
+            borderRadius: '0.375rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span>{errorMensaje}</span>
+          <button
+            type="button"
+            onClick={cargarNotas}
+            style={{
+              padding: '0.375rem 0.75rem',
+              backgroundColor: '#dc2626',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      {!cargando && !errorMensaje && cursos.length === 0 && (
+        <div
+          style={{
+            padding: '2.5rem',
+            textAlign: 'center',
+            backgroundColor: '#ffffff',
+            borderRadius: '0.5rem',
+            border: '1px solid #cbd5e1',
+          }}
+        >
+          <p style={{ fontSize: '1.125rem', fontWeight: 600, color: '#334155', margin: '0 0 0.5rem 0' }}>
+            Aún no tienes asignaturas matriculadas o notas registradas.
+          </p>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+            Una vez el docente registre sus calificaciones en la planilla de Firestore, aparecerán aquí automáticamente.
+          </p>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        {NOTAS_ESTUDIANTE_DEMO.map((curso) => (
+        {cursos.map((curso) => (
           <article
-            key={curso.id}
+            key={curso.cursoId}
             style={{
               backgroundColor: '#ffffff',
               border: '1px solid #cbd5e1',
@@ -119,10 +169,10 @@ export default function PaginaMisNotasEstudiante() {
             >
               <div>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.25rem 0', color: '#1e293b' }}>
-                  {curso.nombre}
+                  {curso.cursoNombre}
                 </h2>
                 <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>
-                  Docente: {curso.docente} · Periodo: {curso.periodo}
+                  Periodo: {curso.periodo} {curso.cerrado && ' · (Curso Cerrado)'}
                 </p>
               </div>
 
@@ -175,32 +225,34 @@ export default function PaginaMisNotasEstudiante() {
                   </tr>
                 </thead>
                 <tbody>
-                  {curso.notas.map((n, i) => (
-                    <tr
-                      key={i}
-                      style={{
-                        borderBottom: '1px solid #e2e8f0',
-                        backgroundColor: i % 2 === 0 ? '#ffffff' : '#f8fafc',
-                      }}
-                    >
-                      <td style={{ padding: '0.75rem 1.5rem', color: '#1e293b', fontWeight: 500 }}>
-                        {n.actividad}
-                      </td>
-                      <td style={{ padding: '0.75rem 1.5rem', color: '#64748b', textAlign: 'center' }}>
-                        {n.porcentaje}%
-                      </td>
-                      <td
+                  {curso.actividades.map((act) => {
+                    const valor = curso.valores[act.id] ?? null;
+                    return (
+                      <tr
+                        key={act.id}
                         style={{
-                          padding: '0.75rem 1.5rem',
-                          textAlign: 'center',
-                          fontWeight: 700,
-                          color: n.valor !== null ? '#0f172a' : '#94a3b8',
+                          borderBottom: '1px solid #e2e8f0',
                         }}
                       >
-                        {n.valor !== null ? n.valor.toFixed(1) : 'Pendiente'}
-                      </td>
-                    </tr>
-                  ))}
+                        <td style={{ padding: '0.75rem 1.5rem', color: '#1e293b', fontWeight: 500 }}>
+                          {act.nombre}
+                        </td>
+                        <td style={{ padding: '0.75rem 1.5rem', color: '#64748b', textAlign: 'center' }}>
+                          {act.porcentaje}%
+                        </td>
+                        <td
+                          style={{
+                            padding: '0.75rem 1.5rem',
+                            textAlign: 'center',
+                            fontWeight: 700,
+                            color: valor !== null ? (valor < 3.0 ? '#dc2626' : '#0f172a') : '#94a3b8',
+                          }}
+                        >
+                          {valor !== null ? valor.toFixed(1) : 'Pendiente'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -210,4 +262,3 @@ export default function PaginaMisNotasEstudiante() {
     </section>
   );
 }
-

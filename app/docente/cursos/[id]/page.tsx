@@ -21,6 +21,29 @@ export default function PaginaPlanillaCurso({ params }: PaginaPlanillaProps) {
     cursoId,
   });
 
+  const handleGuardarLote = async (mapa: Record<string, Record<string, number | null>>) => {
+    const cambios: { estudianteUid: string; actividadId: string; valor: number | null }[] = [];
+    for (const [estudianteUid, actividades] of Object.entries(mapa)) {
+      for (const [actividadId, valor] of Object.entries(actividades)) {
+        cambios.push({ estudianteUid, actividadId, valor });
+      }
+    }
+
+    const res = await fetch(`/api/cursos/${encodeURIComponent(cursoId)}/notas`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cambios,
+        justificacion: 'Actualización docente desde la planilla en vivo',
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error || `Error ${res.status} al guardar notas.`);
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -57,7 +80,7 @@ export default function PaginaPlanillaCurso({ params }: PaginaPlanillaProps) {
       {estado === 'empty' && <PlanillaVacia />}
       {estado === 'success' && datos && (
         <div>
-          <PlanillaNotas datos={datos} />
+          <PlanillaNotas datos={datos} onGuardarLote={handleGuardarLote} />
           <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
             <Link
               href={`/docente/cursos/${cursoId}/actividades`}

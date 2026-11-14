@@ -31,9 +31,10 @@ export const cerrarCursoPayloadSchema = z.object({
  */
 export const crearCursoPayloadSchema = z.object({
   nombre: z.string().min(3, 'El nombre del curso debe tener al menos 3 caracteres'),
-  docenteUid: z.string().min(1, 'El UID del docente es obligatorio'),
+  docenteUid: z.string().min(1, 'El UID del docente es obligatorio').optional().default('docente-1'),
+  docenteNombre: z.string().optional(),
   periodo: z.string().min(1, 'El periodo académico es obligatorio'),
-  actividades: actividadesListSchema,
+  actividades: actividadesListSchema.optional(),
 });
 
 /**

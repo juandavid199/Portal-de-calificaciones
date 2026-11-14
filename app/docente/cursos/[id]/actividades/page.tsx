@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, use } from 'react';
+import React, { useState, useMemo, useEffect, use } from 'react';
 import Link from 'next/link';
 import { BotonVolver } from '@/components/common/BotonVolver';
 import { actividadesListSchema, type Actividad } from '@/schemas/notas.schema';
@@ -9,20 +9,48 @@ interface PaginaActividadesProps {
   params: Promise<{ id: string }>;
 }
 
-const ACTIVIDADES_INICIALES: Actividad[] = [
-  { id: 'act-1', nombre: 'Taller 1: Accesibilidad y HTML Semántico', porcentaje: 30 },
-  { id: 'act-2', nombre: 'Parcial 1: APIs y Seguridad', porcentaje: 30 },
-  { id: 'act-3', nombre: 'Proyecto Final: Portal con Firestore', porcentaje: 40 },
-];
-
 export default function PaginaActividadesCurso({ params }: PaginaActividadesProps) {
   const resolvedParams = use(params);
   const cursoId = resolvedParams.id;
 
-  const [actividades, setActividades] = useState<Actividad[]>(ACTIVIDADES_INICIALES);
+  const [actividades, setActividades] = useState<Actividad[]>([]);
+  const [cursoNombre, setCursoNombre] = useState<string>('');
+  const [cargando, setCargando] = useState<boolean>(true);
+  const [guardando, setGuardando] = useState<boolean>(false);
   const [nuevaNombre, setNuevaNombre] = useState('');
   const [nuevoPorcentaje, setNuevoPorcentaje] = useState('');
   const [mensajeEstado, setMensajeEstado] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarActividades() {
+      setCargando(true);
+      try {
+        const res = await fetch(`/api/cursos/${encodeURIComponent(cursoId)}/actividades`);
+        if (!res.ok) {
+          throw new Error('No se pudieron cargar las actividades del curso.');
+        }
+        const data = await res.json();
+        if (!cancelado) {
+          setActividades(data.actividades || []);
+          setCursoNombre(data.nombre || `Curso ${cursoId}`);
+        }
+      } catch (err: unknown) {
+        if (!cancelado) {
+          setMensajeEstado({
+            tipo: 'error',
+            texto: err instanceof Error ? err.message : 'Error al conectar con el servidor',
+          });
+        }
+      } finally {
+        if (!cancelado) setCargando(false);
+      }
+    }
+    cargarActividades();
+    return () => {
+      cancelado = true;
+    };
+  }, [cursoId]);
 
   const sumaPorcentajes = useMemo(
     () => actividades.reduce((acc, act) => acc + act.porcentaje, 0),
@@ -63,7 +91,8 @@ export default function PaginaActividadesCurso({ params }: PaginaActividadesProp
     setNuevoPorcentaje('');
   };
 
-  const handleGuardarConfiguracion = () => {
+  const handleGuardarConfiguracion = async () => {
+    setMensajeEstado(null);
     const validacion = actividadesListSchema.safeParse(actividades);
     if (!validacion.success) {
       setMensajeEstado({
@@ -73,10 +102,31 @@ export default function PaginaActividadesCurso({ params }: PaginaActividadesProp
       return;
     }
 
-    setMensajeEstado({
-      tipo: 'exito',
-      texto: '¡Configuración de actividades guardada exitosamente!',
-    });
+    setGuardando(true);
+    try {
+      const res = await fetch(`/api/cursos/${encodeURIComponent(cursoId)}/actividades`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actividades }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || 'Error al persistir actividades en Firestore.');
+      }
+
+      setMensajeEstado({
+        tipo: 'exito',
+        texto: '¡Configuración de actividades guardada exitosamente en Firestore!',
+      });
+    } catch (err: unknown) {
+      setMensajeEstado({
+        tipo: 'error',
+        texto: err instanceof Error ? err.message : 'Error al guardar actividades',
+      });
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -122,9 +172,15 @@ export default function PaginaActividadesCurso({ params }: PaginaActividadesProp
           Actividades y porcentajes del curso
         </h1>
         <p style={{ color: '#475569', fontSize: '1rem', maxWidth: '65ch', margin: 0 }}>
-          Defina las actividades evaluativas y sus respectivos porcentajes. La suma debe dar exactamente 100%.
+          {cursoNombre ? `Curso: ${cursoNombre}. ` : ''}Defina las actividades evaluativas y sus respectivos porcentajes. La suma debe dar exactamente 100%.
         </p>
       </header>
+
+      {cargando && (
+        <div role="status" aria-live="polite" style={{ padding: '1rem', color: '#64748b' }}>
+          Cargando configuración desde Firestore...
+        </div>
+      )}
 
       {/* Alerta de estado */}
       {mensajeEstado && (
@@ -324,20 +380,20 @@ export default function PaginaActividadesCurso({ params }: PaginaActividadesProp
         <button
           type="button"
           onClick={handleGuardarConfiguracion}
-          disabled={!esValido100}
+          disabled={!esValido100 || guardando}
           style={{
             padding: '0.75rem 1.5rem',
-            backgroundColor: esValido100 ? '#16a34a' : '#94a3b8',
+            backgroundColor: esValido100 && !guardando ? '#16a34a' : '#94a3b8',
             color: '#ffffff',
             border: 'none',
             borderRadius: '0.375rem',
             fontSize: '1rem',
             fontWeight: 700,
-            cursor: esValido100 ? 'pointer' : 'not-allowed',
+            cursor: esValido100 && !guardando ? 'pointer' : 'not-allowed',
             minHeight: '2.75rem',
           }}
         >
-          Guardar configuración de porcentajes
+          {guardando ? 'Guardando en Firestore...' : 'Guardar configuración de porcentajes'}
         </button>
 
         <Link

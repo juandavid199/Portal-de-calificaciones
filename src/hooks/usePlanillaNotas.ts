@@ -11,39 +11,8 @@ interface UsePlanillaNotasOptions {
 
 export type EstadoPlanilla = 'loading' | 'error' | 'empty' | 'success';
 
-const MOCK_PLANILLA_INICIAL: PlanillaDatos = {
-  curso: 'Desarrollo Web - 50 Portal de Calificaciones',
-  actividades: [
-    { id: 'act-1', nombre: 'Taller 1: Accesibilidad y HTML Semántico', porcentaje: 30 },
-    { id: 'act-2', nombre: 'Parcial 1: APIs y Seguridad', porcentaje: 30 },
-    { id: 'act-3', nombre: 'Proyecto Final: Portal con Firestore', porcentaje: 40 },
-  ],
-  estudiantes: [
-    {
-      uid: 'est-001',
-      nombre: 'Camila Morales',
-      notas: { 'act-1': 4.5, 'act-2': 4.0, 'act-3': 4.8 },
-    },
-    {
-      uid: 'est-002',
-      nombre: 'Mateo Gómez',
-      notas: { 'act-1': 3.2, 'act-2': 2.8, 'act-3': 3.5 },
-    },
-    {
-      uid: 'est-003',
-      nombre: 'Sofía Herrera',
-      notas: { 'act-1': 5.0, 'act-2': 4.8, 'act-3': 5.0 },
-    },
-    {
-      uid: 'est-004',
-      nombre: 'Juan David Ramírez',
-      notas: { 'act-1': 3.8, 'act-2': 3.5, 'act-3': null },
-    },
-  ],
-};
-
 /**
- * Hook para consumir la planilla de notas simulando un fetch con promesa.
+ * Hook para consumir la planilla de notas conectada a Firestore vía API.
  * Gestiona los 4 estados canónicos de la interfaz: carga, error, vacío y éxito.
  */
 export function usePlanillaNotas({
@@ -60,9 +29,6 @@ export function usePlanillaNotas({
     setErrorMensaje(null);
 
     try {
-      // Simular latencia de red de 400ms
-      await new Promise((resolve) => setTimeout(resolve, 400));
-
       if (simularError) {
         throw new Error('Error al conectar con la base de datos de calificaciones.');
       }
@@ -77,18 +43,44 @@ export function usePlanillaNotas({
         return;
       }
 
-      setDatos(MOCK_PLANILLA_INICIAL);
+      const res = await fetch(`/api/cursos/${encodeURIComponent(cursoId)}/notas`, {
+        method: 'GET',
+        headers: { credentials: 'same-origin' },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error || `Error al obtener la planilla (${res.status})`);
+      }
+
+      const data = await res.json();
+
+      if (!data.estudiantes || (data.estudiantes.length === 0 && data.actividades.length === 0)) {
+        setDatos({
+          curso: data.curso || `Curso ${cursoId}`,
+          actividades: data.actividades || [],
+          estudiantes: [],
+        });
+        setEstado('empty');
+        return;
+      }
+
+      setDatos({
+        curso: data.curso,
+        actividades: data.actividades || [],
+        estudiantes: data.estudiantes || [],
+      });
       setEstado('success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error inesperado al cargar la planilla';
       setErrorMensaje(msg);
       setEstado('error');
     }
-  }, [simularError, simularVacio]);
+  }, [cursoId, simularError, simularVacio]);
 
   useEffect(() => {
     cargarDatos();
-  }, [cargarDatos, cursoId]);
+  }, [cargarDatos]);
 
   return {
     estado,

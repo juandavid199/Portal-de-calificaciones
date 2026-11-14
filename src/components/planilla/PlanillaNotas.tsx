@@ -23,11 +23,34 @@ interface PlanillaNotasProps {
  * - Recálculo reactivo del definitivo ponderado con aritmética exacta vía useMemo.
  * - Validación por celda con Zod y anuncios accesibles vía aria-live.
  */
-export function PlanillaNotas({ datos, onGuardarLote: _onGuardarLote }: PlanillaNotasProps) {
+export function PlanillaNotas({ datos, onGuardarLote }: PlanillaNotasProps) {
   const [estudiantes, setEstudiantes] = useState<EstudiantePlanilla[]>(datos.estudiantes);
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
   const [anuncioLive, setAnuncioLive] = useState<string>('');
+  const [guardando, setGuardando] = useState<boolean>(false);
+  const [mensajeGuardado, setMensajeGuardado] = useState<{ tipo: 'exito' | 'error'; texto: string } | null>(null);
   const liveRegionId = useId();
+
+  const handleGuardar = async () => {
+    if (!onGuardarLote) return;
+    setGuardando(true);
+    setMensajeGuardado(null);
+    try {
+      const mapaCambios: Record<string, Record<string, number | null>> = {};
+      for (const est of estudiantes) {
+        mapaCambios[est.uid] = est.notas;
+      }
+      await onGuardarLote(mapaCambios);
+      setMensajeGuardado({ tipo: 'exito', texto: '¡Calificaciones guardadas exitosamente en Firestore!' });
+      setAnuncioLive('Calificaciones guardadas exitosamente en Firestore.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar calificaciones.';
+      setMensajeGuardado({ tipo: 'error', texto: msg });
+      setAnuncioLive(`Error al guardar: ${msg}`);
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   const numRows = estudiantes.length;
   const numCols = datos.actividades.length;
@@ -276,6 +299,51 @@ export function PlanillaNotas({ datos, onGuardarLote: _onGuardarLote }: Planilla
           </tbody>
         </table>
       </div>
+
+      {mensajeGuardado && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            marginTop: '1rem',
+            padding: '0.75rem 1rem',
+            borderRadius: '0.375rem',
+            backgroundColor: mensajeGuardado.tipo === 'exito' ? '#ecfdf5' : '#fee2e2',
+            color: mensajeGuardado.tipo === 'exito' ? '#065f46' : '#991b1b',
+            border: `1px solid ${mensajeGuardado.tipo === 'exito' ? '#a7f3d0' : '#fca5a5'}`,
+            fontWeight: 500,
+            fontSize: '0.875rem',
+          }}
+        >
+          {mensajeGuardado.texto}
+        </div>
+      )}
+
+      {onGuardarLote && (
+        <div style={{ marginTop: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={handleGuardar}
+            disabled={guardando}
+            style={{
+              padding: '0.625rem 1.5rem',
+              backgroundColor: guardando ? '#94a3b8' : '#16a34a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '0.375rem',
+              fontSize: '0.9375rem',
+              fontWeight: 700,
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              minHeight: '2.75rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            {guardando ? 'Guardando en Firestore...' : '💾 Guardar calificaciones en Firestore'}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

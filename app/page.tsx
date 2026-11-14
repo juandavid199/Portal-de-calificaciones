@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { RolUsuario } from '@/lib/auth';
@@ -9,41 +9,46 @@ interface CursoItem {
   id: string;
   nombre: string;
   periodo: string;
-  docente: string;
-  rol: 'docente' | 'estudiante';
+  docenteNombre?: string;
+  docenteUid?: string;
   cerrado: boolean;
 }
 
-const CURSOS_DEMO: CursoItem[] = [
-  {
-    id: 'demo-1',
-    nombre: 'Desarrollo Web Full Stack - Portal de Calificaciones',
-    periodo: '2026-2',
-    docente: 'Prof. Carlos Mendoza',
-    rol: 'docente',
-    cerrado: false,
-  },
-  {
-    id: 'demo-2',
-    nombre: 'Arquitectura de Software y Seguridad',
-    periodo: '2026-2',
-    docente: 'Dra. Luisa Ortega',
-    rol: 'estudiante',
-    cerrado: false,
-  },
-];
-
 export default function PaginaMisCursos() {
   const { usuario, rol, cargando } = useAuth();
+  const [cursos, setCursos] = useState<CursoItem[]>([]);
+  const [cargandoCursos, setCargandoCursos] = useState<boolean>(true);
+
+  const rolActivo: RolUsuario = rol || 'estudiante';
+
+  useEffect(() => {
+    let cancelado = false;
+    async function cargarCursos() {
+      if (!usuario) return;
+      setCargandoCursos(true);
+      try {
+        const res = await fetch('/api/cursos');
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelado) {
+            setCursos(data.cursos || []);
+          }
+        }
+      } catch {
+        // Silencioso o mantener lista vacía
+      } finally {
+        if (!cancelado) setCargandoCursos(false);
+      }
+    }
+    cargarCursos();
+    return () => {
+      cancelado = true;
+    };
+  }, [usuario]);
 
   if (cargando || !usuario) {
     return null;
   }
-
-  const rolActivo: RolUsuario = rol || 'estudiante';
-
-  // Filtrar los cursos según el rol real (docente o estudiante)
-  const cursosFiltrados = CURSOS_DEMO.filter((c) => c.rol === rolActivo);
 
   return (
     <section aria-labelledby="titulo-principal">
@@ -98,16 +103,16 @@ export default function PaginaMisCursos() {
           }}
         >
           {rolActivo === 'docente' && 'Panel del Docente — Mis cursos a cargo'}
-          {rolActivo === 'estudiante' && 'Panel del Estudiante — Mis asignaturas matriculadas'}
+          {rolActivo === 'estudiante' && 'Panel del Estudiante — Mis asignaturas'}
           {rolActivo === 'admin' && 'Panel de Control del Administrador'}
         </h1>
         <p style={{ color: '#475569', fontSize: '1rem', maxWidth: '65ch', margin: 0 }}>
           {rolActivo === 'docente' &&
-            'Como docente, gestione las planillas de calificaciones de sus cursos asignados y configure los porcentajes de evaluación.'}
+            'Como docente, gestione las planillas de calificaciones de sus cursos en Firestore y configure las actividades de evaluación.'}
           {rolActivo === 'estudiante' &&
-            'Como estudiante, consulte sus calificaciones parciales y su promedio definitivo acumulado.'}
+            'Como estudiante, consulte sus calificaciones parciales y su promedio definitivo acumulado registrado en Firestore.'}
           {rolActivo === 'admin' &&
-            'Como administrador, gestione los cursos académicos, las matrículas y la creación de usuarios con sus respectivos roles.'}
+            'Como administrador, gestione los cursos académicos en Firestore, supervise las matrículas y cree nuevos usuarios con sus respectivos roles.'}
         </p>
       </header>
 
@@ -152,7 +157,7 @@ export default function PaginaMisCursos() {
                 Gestión de Cursos y Matrículas
               </h2>
               <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
-                Creación de asignaturas, asignación de docentes titulares y registro de matrículas de estudiantes (RF-01).
+                Creación de asignaturas en Firestore, asignación de docentes titulares y supervisión de cursos (RF-01).
               </p>
             </div>
             <Link
@@ -172,7 +177,7 @@ export default function PaginaMisCursos() {
                 justifyContent: 'center',
               }}
             >
-              Administrar Cursos →
+              Administrar Cursos en Firestore →
             </Link>
           </article>
 
@@ -234,125 +239,152 @@ export default function PaginaMisCursos() {
         </div>
       ) : (
         /* VISTA PARA DOCENTES Y ESTUDIANTES */
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(18rem, 1fr))',
-            gap: '1.5rem',
-          }}
-        >
-          {cursosFiltrados.map((curso) => (
-            <article
-              key={curso.id}
+        <div>
+          {cargandoCursos ? (
+            <div role="status" aria-live="polite" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+              Cargando cursos desde Firestore...
+            </div>
+          ) : cursos.length === 0 ? (
+            <div
               style={{
                 backgroundColor: '#ffffff',
                 border: '1px solid #cbd5e1',
                 borderRadius: '0.5rem',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+                padding: '2.5rem',
+                textAlign: 'center',
               }}
             >
-              <div>
-                <span
+              <p style={{ fontSize: '1.125rem', fontWeight: 600, color: '#334155', margin: '0 0 0.5rem 0' }}>
+                No hay cursos disponibles en Firestore aún.
+              </p>
+              <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+                {rolActivo === 'docente'
+                  ? 'El administrador debe registrar cursos académicos o puede ejecutar el seed inicial.'
+                  : 'Consulte con su docente o administrador para matricular sus asignaturas.'}
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(18rem, 1fr))',
+                gap: '1.5rem',
+              }}
+            >
+              {cursos.map((curso) => (
+                <article
+                  key={curso.id}
                   style={{
-                    display: 'inline-block',
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    borderRadius: '0.25rem',
-                    backgroundColor: rolActivo === 'docente' ? '#dbeafe' : '#dcfce7',
-                    color: rolActivo === 'docente' ? '#1e40af' : '#166534',
-                    marginBottom: '0.75rem',
-                    textTransform: 'uppercase',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '0.5rem',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
                   }}
                 >
-                  {curso.rol}
-                </span>
-                <h2
-                  style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
-                    color: '#1e293b',
-                    margin: '0 0 0.5rem 0',
-                  }}
-                >
-                  {curso.nombre}
-                </h2>
-                <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0 0 1.25rem 0' }}>
-                  Periodo: {curso.periodo} · {curso.docente}
-                </p>
-              </div>
+                  <div>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        borderRadius: '0.25rem',
+                        backgroundColor: rolActivo === 'docente' ? '#dbeafe' : '#dcfce7',
+                        color: rolActivo === 'docente' ? '#1e40af' : '#166534',
+                        marginBottom: '0.75rem',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {rolActivo}
+                    </span>
+                    <h2
+                      style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 700,
+                        color: '#1e293b',
+                        margin: '0 0 0.5rem 0',
+                      }}
+                    >
+                      {curso.nombre}
+                    </h2>
+                    <p style={{ color: '#64748b', fontSize: '0.875rem', margin: '0 0 1.25rem 0' }}>
+                      Periodo: {curso.periodo} · {curso.docenteNombre || 'Docente asignado'}
+                    </p>
+                  </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {rolActivo === 'docente' ? (
-                  <>
-                    <Link
-                      href={`/docente/cursos/${curso.id}`}
-                      style={{
-                        flex: 1,
-                        textAlign: 'center',
-                        padding: '0.625rem 1rem',
-                        backgroundColor: '#2563eb',
-                        color: '#ffffff',
-                        textDecoration: 'none',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        minHeight: '2.75rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      Ver planilla
-                    </Link>
-                    <Link
-                      href={`/docente/cursos/${curso.id}/actividades`}
-                      style={{
-                        padding: '0.625rem 1rem',
-                        backgroundColor: '#f1f5f9',
-                        color: '#334155',
-                        textDecoration: 'none',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        minHeight: '2.75rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      Actividades
-                    </Link>
-                  </>
-                ) : (
-                  <Link
-                    href="/estudiante/notas"
-                    style={{
-                      flex: 1,
-                      textAlign: 'center',
-                      padding: '0.625rem 1rem',
-                      backgroundColor: '#16a34a',
-                      color: '#ffffff',
-                      textDecoration: 'none',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      minHeight: '2.75rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    Consultar mis notas →
-                  </Link>
-                )}
-              </div>
-            </article>
-          ))}
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {rolActivo === 'docente' ? (
+                      <>
+                        <Link
+                          href={`/docente/cursos/${curso.id}`}
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            padding: '0.625rem 1rem',
+                            backgroundColor: '#2563eb',
+                            color: '#ffffff',
+                            textDecoration: 'none',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            minHeight: '2.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          Ver planilla
+                        </Link>
+                        <Link
+                          href={`/docente/cursos/${curso.id}/actividades`}
+                          style={{
+                            padding: '0.625rem 1rem',
+                            backgroundColor: '#f1f5f9',
+                            color: '#334155',
+                            textDecoration: 'none',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            minHeight: '2.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          Actividades
+                        </Link>
+                      </>
+                    ) : (
+                      <Link
+                        href="/estudiante/notas"
+                        style={{
+                          flex: 1,
+                          textAlign: 'center',
+                          padding: '0.625rem 1rem',
+                          backgroundColor: '#16a34a',
+                          color: '#ffffff',
+                          textDecoration: 'none',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          minHeight: '2.75rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        Consultar mis notas →
+                      </Link>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
