@@ -62,6 +62,7 @@ Configuradas en [.vscode/settings.json](file:///c:/Users/Usuario/Downloads/marte
   - Endpoints REST: `POST /api/admin/usuarios` y `GET /api/admin/usuarios` en [app/api/admin/usuarios/route.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/app/api/admin/usuarios/route.ts) con autorización estricta para rol admin. Pruebas en [tests/api/adminUsuariosRoute.test.ts](file:///c:/Users/Usuario/Downloads/martes_jueves/tests/api/adminUsuariosRoute.test.ts).
   - Interfaz de Usuario: [app/admin/usuarios/page.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/app/admin/usuarios/page.tsx) con formulario accesible, anuncios `aria-live` y tabla de usuarios con insignias semánticas por rol.
   - Navegación Principal: [src/components/layout/Navigation.tsx](file:///c:/Users/Usuario/Downloads/martes_jueves/src/components/layout/Navigation.tsx) con acceso directo para administradores.
+* **Repositorio Remoto GitHub:** Vinculado y sincronizado con `https://github.com/juandavid199/Portal-de-calificaciones.git` en rama `main`. Exclusión estricta de `.env*` y `scripts/` verificada.
 
 ---
 
