@@ -1,4 +1,4 @@
-import { obtenerAdminAuth } from './firebaseAdmin';
+import { obtenerAdminAuth, obtenerAdminDb } from './firebaseAdmin';
 import { UnauthorizedError, ForbiddenError } from './errores';
 
 export type RolUsuario = 'docente' | 'estudiante' | 'admin';
@@ -55,7 +55,25 @@ export async function requerirUsuario(
       decodedToken = await auth.verifyIdToken(tokenOId, false);
     }
 
-    const rol: RolUsuario = (decodedToken.rol as RolUsuario) || 'estudiante';
+    let rol: RolUsuario = (decodedToken.rol as RolUsuario);
+
+    // Si el token aún no tiene el Custom Claim, consultar perfil en Firestore 'usuarios'
+    if (!rol) {
+      try {
+        const db = obtenerAdminDb();
+        const userDoc = await db.collection('usuarios').doc(decodedToken.uid).get();
+        if (userDoc.exists) {
+          rol = userDoc.data()?.rol as RolUsuario;
+        }
+      } catch {
+        // Silencioso
+      }
+    }
+
+    if (!rol) {
+      rol = 'estudiante';
+    }
+
     const usuario: UsuarioAutenticado = {
       uid: decodedToken.uid,
       correo: decodedToken.email,

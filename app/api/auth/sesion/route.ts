@@ -1,5 +1,5 @@
 import { manejar, respuestaJson } from '@/lib/http';
-import { obtenerAdminAuth } from '@/lib/firebaseAdmin';
+import { obtenerAdminAuth, obtenerAdminDb } from '@/lib/firebaseAdmin';
 import { crearSesionPayloadSchema } from '@/schemas/api.schema';
 import type { RolUsuario } from '@/lib/auth';
 
@@ -15,9 +15,25 @@ export const POST = manejar(async (req: Request) => {
 
   const auth = obtenerAdminAuth();
 
-  // 1. Decodificar el token de inmediato para extraer perfil y rol sin llamadas adicionales
+  // 1. Decodificar el token de inmediato para extraer perfil y rol
   const decoded = await auth.verifyIdToken(idToken, false);
-  const rol = (decoded.rol as RolUsuario) || 'estudiante';
+  let rol = decoded.rol as RolUsuario;
+
+  if (!rol) {
+    try {
+      const db = obtenerAdminDb();
+      const userDoc = await db.collection('usuarios').doc(decoded.uid).get();
+      if (userDoc.exists) {
+        rol = userDoc.data()?.rol as RolUsuario;
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  if (!rol) {
+    rol = 'estudiante';
+  }
 
   // 2. Crear la cookie de sesión cifrada por Firebase
   const sessionCookie = await auth.createSessionCookie(idToken, {
