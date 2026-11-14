@@ -1,6 +1,7 @@
 import { manejar, respuestaJson } from '@/lib/http';
 import { obtenerAdminAuth } from '@/lib/firebaseAdmin';
 import { crearSesionPayloadSchema } from '@/schemas/api.schema';
+import type { RolUsuario } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -14,18 +15,42 @@ export const POST = manejar(async (req: Request) => {
 
   const auth = obtenerAdminAuth();
 
-  // Crear la cookie de sesión cifrada por Firebase
+  // 1. Decodificar el token de inmediato para extraer perfil y rol sin llamadas adicionales
+  const decoded = await auth.verifyIdToken(idToken, false);
+  const rol = (decoded.rol as RolUsuario) || 'estudiante';
+
+  // 2. Crear la cookie de sesión cifrada por Firebase
   const sessionCookie = await auth.createSessionCookie(idToken, {
     expiresIn: CINCO_DIAS_MS,
   });
 
-  const response = respuestaJson({ mensaje: 'Sesión iniciada exitosamente' }, 200);
-
-  // Adjuntar cabecera Set-Cookie con directivas de seguridad estrictas
-  response.headers.append(
-    'Set-Cookie',
-    `sesion=${sessionCookie}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${CINCO_DIAS_SEG}`
+  const response = respuestaJson(
+    {
+      mensaje: 'Sesión iniciada exitosamente',
+      usuario: {
+        uid: decoded.uid,
+        correo: decoded.email,
+        rol,
+      },
+    },
+    200
   );
+
+  // 3. Adjuntar cabecera Set-Cookie
+  // Solo exigir 'Secure' en entorno de producción (HTTPS) para no descartar cookies en desarrollo local (HTTP)
+  const esProduccion = process.env.NODE_ENV === 'production';
+  const directivasCookie = [
+    `sesion=${sessionCookie}`,
+    'HttpOnly',
+    esProduccion ? 'Secure' : '',
+    'SameSite=Lax',
+    'Path=/',
+    `Max-Age=${CINCO_DIAS_SEG}`,
+  ]
+    .filter(Boolean)
+    .join('; ');
+
+  response.headers.append('Set-Cookie', directivasCookie);
 
   return response;
 });
@@ -33,12 +58,19 @@ export const POST = manejar(async (req: Request) => {
 export const DELETE = manejar(async () => {
   const response = respuestaJson({ mensaje: 'Sesión cerrada exitosamente' }, 200);
 
-  // Borrar la cookie
-  response.headers.append(
-    'Set-Cookie',
-    'sesion=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'
-  );
+  const esProduccion = process.env.NODE_ENV === 'production';
+  const directivasCookie = [
+    'sesion=',
+    'HttpOnly',
+    esProduccion ? 'Secure' : '',
+    'SameSite=Lax',
+    'Path=/',
+    'Max-Age=0',
+  ]
+    .filter(Boolean)
+    .join('; ');
+
+  response.headers.append('Set-Cookie', directivasCookie);
 
   return response;
 });
-

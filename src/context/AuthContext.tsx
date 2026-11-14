@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { obtenerAuthCliente } from '@/lib/firebaseClient';
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [cargando, setCargando] = useState(true);
+  const autenticandoRef = useRef(false);
 
   // Sincronizar usuario activo consultando /api/auth/yo
   const refrescarPerfilServidor = useCallback(async () => {
@@ -58,6 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const auth = obtenerAuthCliente();
       const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
+        // Si el usuario está ejecutando iniciarSesion(), evitar llamada redundante
+        if (autenticandoRef.current) {
+          return;
+        }
+
         if (user) {
           await refrescarPerfilServidor();
         } else {
@@ -73,12 +79,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const iniciarSesion = async (correo: string, contrasena: string) => {
     setCargando(true);
+    autenticandoRef.current = true;
     try {
       const auth = obtenerAuthCliente();
       const cred = await signInWithEmailAndPassword(auth, correo, contrasena);
       const idToken = await cred.user.getIdToken();
 
-      // Enviar idToken al servidor para establecer la cookie HttpOnly
+      // Enviar idToken al servidor para establecer la cookie HttpOnly y recibir perfil de inmediato
       const res = await fetch('/api/auth/sesion', {
         method: 'POST',
         headers: {
@@ -93,11 +100,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(errJson.error || 'No se pudo establecer la sesión en el servidor.');
       }
 
-      await refrescarPerfilServidor();
+      const data = await res.json();
+      if (data.usuario) {
+        setUsuario(data.usuario);
+      } else {
+        await refrescarPerfilServidor();
+      }
     } catch (err: unknown) {
-      setCargando(false);
+      setUsuario(null);
       const msg = err instanceof Error ? err.message : 'Error al iniciar sesión';
       throw new Error(msg);
+    } finally {
+      autenticandoRef.current = false;
+      setCargando(false);
     }
   };
 
@@ -144,4 +159,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
-

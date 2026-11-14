@@ -48,11 +48,11 @@ export async function requerirUsuario(
     let decodedToken;
 
     if (esCookie) {
-      // Validar cookie de sesión exigiendo chequeo de revocación
-      decodedToken = await auth.verifySessionCookie(tokenOId, true);
+      // Validar cookie de sesión mediante verificación criptográfica local ultra-rápida
+      decodedToken = await auth.verifySessionCookie(tokenOId, false);
     } else {
       // Validar idToken directo
-      decodedToken = await auth.verifyIdToken(tokenOId, true);
+      decodedToken = await auth.verifyIdToken(tokenOId, false);
     }
 
     const rol: RolUsuario = (decodedToken.rol as RolUsuario) || 'estudiante';

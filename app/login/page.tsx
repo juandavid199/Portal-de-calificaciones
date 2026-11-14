@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
@@ -9,10 +9,22 @@ export default function PaginaLogin() {
   const searchParams = useSearchParams();
   const redirectTarget = searchParams?.get('redirect') || '/';
 
-  const { iniciarSesion, cargando } = useAuth();
+  const { iniciarSesion, cargando, usuario } = useAuth();
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [enviando, setEnviando] = useState(false);
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
+
+  // Si ya tiene sesión activa, redirigir automáticamente
+  useEffect(() => {
+    if (!cargando && usuario) {
+      if (typeof window !== 'undefined') {
+        window.location.href = redirectTarget;
+      } else {
+        router.replace(redirectTarget);
+      }
+    }
+  }, [cargando, usuario, redirectTarget, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +40,29 @@ export default function PaginaLogin() {
       return;
     }
 
+    setEnviando(true);
     try {
       await iniciarSesion(correo.trim(), contrasena);
-      router.push(redirectTarget);
+      // Redirección directa para que el navegador envíe de inmediato la cookie de sesión
+      if (typeof window !== 'undefined') {
+        window.location.href = redirectTarget;
+      } else {
+        router.replace(redirectTarget);
+      }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al autenticar';
+      setEnviando(false);
+      let msg = err instanceof Error ? err.message : 'Error al autenticar';
+
+      if (
+        msg.includes('auth/invalid-credential') ||
+        msg.includes('auth/wrong-password') ||
+        msg.includes('auth/user-not-found')
+      ) {
+        msg = 'Correo institucional o contraseña incorrectos. Por favor verifique sus datos.';
+      } else if (msg.includes('auth/too-many-requests')) {
+        msg = 'Demasiados intentos fallidos. Por seguridad, espere unos minutos antes de intentar de nuevo.';
+      }
+
       setErrorLocal(msg);
     }
   };
@@ -82,81 +112,113 @@ export default function PaginaLogin() {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <fieldset style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <fieldset
+          disabled={enviando}
+          style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           <legend className="sr-only" style={{ display: 'none' }}>
             Credenciales de acceso
           </legend>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <label htmlFor="correo" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-              Correo electrónico
+            <label
+              htmlFor="campo-correo"
+              style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}
+            >
+              Correo electrónico institucional
             </label>
             <input
-              id="correo"
+              id="campo-correo"
               type="email"
-              autoComplete="username"
+              autoComplete="email"
               required
+              aria-required="true"
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
-              placeholder="nombre@universidad.edu.co"
+              placeholder="docente@portal.edu.co"
               style={{
-                padding: '0.625rem 0.75rem',
-                border: '1px solid #94a3b8',
-                borderRadius: '0.375rem',
+                padding: '0.625rem 0.875rem',
                 fontSize: '1rem',
+                border: '1px solid #cbd5e1',
+                borderRadius: '0.375rem',
                 minHeight: '2.75rem',
                 boxSizing: 'border-box',
+                backgroundColor: enviando ? '#f8fafc' : '#ffffff',
               }}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-            <label htmlFor="contrasena" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
+            <label
+              htmlFor="campo-contrasena"
+              style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}
+            >
               Contraseña
             </label>
             <input
-              id="contrasena"
+              id="campo-contrasena"
               type="password"
               autoComplete="current-password"
               required
+              aria-required="true"
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
               placeholder="••••••••"
               style={{
-                padding: '0.625rem 0.75rem',
-                border: '1px solid #94a3b8',
-                borderRadius: '0.375rem',
+                padding: '0.625rem 0.875rem',
                 fontSize: '1rem',
+                border: '1px solid #cbd5e1',
+                borderRadius: '0.375rem',
                 minHeight: '2.75rem',
                 boxSizing: 'border-box',
+                backgroundColor: enviando ? '#f8fafc' : '#ffffff',
               }}
             />
           </div>
 
           <button
             type="submit"
-            disabled={cargando}
+            disabled={enviando}
             style={{
               marginTop: '0.5rem',
               padding: '0.75rem 1.5rem',
-              backgroundColor: cargando ? '#94a3b8' : '#2563eb',
+              backgroundColor: enviando ? '#64748b' : '#2563eb',
               color: '#ffffff',
               border: 'none',
               borderRadius: '0.375rem',
               fontSize: '1rem',
-              fontWeight: 700,
-              cursor: cargando ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+              cursor: enviando ? 'not-allowed' : 'pointer',
               minHeight: '2.75rem',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '0.5rem',
+              transition: 'background-color 0.15s ease',
             }}
           >
-            {cargando ? 'Verificando...' : 'Ingresar al portal'}
+            {enviando ? (
+              <>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: '1rem',
+                    height: '1rem',
+                    border: '2px solid #ffffff',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                  aria-hidden="true"
+                />
+                <span>Iniciando sesión...</span>
+              </>
+            ) : (
+              'Ingresar al portal'
+            )}
           </button>
         </fieldset>
       </form>
     </section>
   );
 }
-
