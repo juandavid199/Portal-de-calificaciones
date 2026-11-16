@@ -21,6 +21,14 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
       if (typeof router?.replace === 'function') {
         router.replace('/login');
       }
+      if (typeof window !== 'undefined') {
+        const timer = setTimeout(() => {
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }, 150);
+        return () => clearTimeout(timer);
+      }
     }
   }, [cargando, usuario, esRutaPublica, router]);
 

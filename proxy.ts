@@ -1,15 +1,35 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
+ * Valida si un JWT está expirado o malformado examinando su payload 'exp'
+ * sin requerir dependencias pesadas en el Edge Runtime de Next.js.
+ */
+function esTokenExpiradoOInvalido(token: string): boolean {
+  try {
+    const partes = token.split('.');
+    if (partes.length !== 3) return true;
+    const payloadBase64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonStr = atob(payloadBase64);
+    const payload = JSON.parse(jsonStr);
+    if (!payload.exp) return false;
+    const ahoraSegundos = Math.floor(Date.now() / 1000);
+    // Si ya expiró o expira en menos de 5 segundos
+    return payload.exp <= ahoraSegundos + 5;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Proxy / Middleware de navegación de Next.js (Edge):
- * - BLOQUEO TOTAL: Ninguna vista puede ser visualizada sin iniciar sesión.
- * - Toda ruta (incluyendo '/') redirige inmediatamente a /login si no hay cookie de sesión activa.
- * - Si el usuario ya tiene sesión activa e ingresa a /login, es redirigido a '/'.
+ * - BLOQUEO TOTAL: Ninguna vista protegida puede ser visualizada sin sesión activa y vigente.
+ * - Si el token de sesión ha expirado o es inválido, limpia la cookie y redirige de inmediato a /login.
+ * - NUNCA atrapa al usuario en loops de redirección entre / y /login.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookieSesion = request.cookies.get('sesion');
-  const estaAutenticado = Boolean(cookieSesion?.value);
+  const tokenValido = Boolean(cookieSesion?.value && !esTokenExpiradoOInvalido(cookieSesion.value));
 
   // Rutas públicas exceptuadas
   const esRutaPublica =
@@ -19,18 +39,32 @@ export function proxy(request: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname === '/favicon.ico';
 
-  // 1. Si NO está autenticado y busca acceder a cualquier página o vista de la app:
-  if (!estaAutenticado && !esRutaPublica && !pathname.startsWith('/api')) {
+  // 1. Si NO tiene un token válido y busca acceder a cualquier página protegida:
+  if (!tokenValido && !esRutaPublica && !pathname.startsWith('/api')) {
     const loginUrl = new URL('/login', request.url);
     if (pathname !== '/') {
       loginUrl.searchParams.set('redirect', pathname);
     }
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    // Eliminar la cookie inválida o expirada para romper cualquier loop
+    if (cookieSesion) {
+      response.cookies.delete('sesion');
+    }
+    return response;
   }
 
-  // 2. Si YA está autenticado e intenta ir a la pantalla de login:
-  if (estaAutenticado && pathname === '/login') {
-    return NextResponse.redirect(new URL('/', request.url));
+  // 2. Si el usuario intenta ir a /login:
+  if (pathname === '/login') {
+    // Si la cookie existe pero el token ya expiró, limpiarla y permitirle ver /login
+    if (cookieSesion && !tokenValido) {
+      const response = NextResponse.next();
+      response.cookies.delete('sesion');
+      return response;
+    }
+    // Si y solo si el token es 100% válido y vigente, redirigir al inicio
+    if (tokenValido) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   return NextResponse.next();
