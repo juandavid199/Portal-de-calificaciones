@@ -28,6 +28,7 @@ export function Header() {
       >
         <Link
           href="/"
+          prefetch={false}
           style={{
             color: '#ffffff',
             textDecoration: 'none',

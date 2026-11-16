@@ -10,6 +10,34 @@ export interface UsuarioAutenticado {
 }
 
 /**
+ * Resuelve el rol del usuario desde el Custom Claim del token o, como respaldo con timeout,
+ * desde la colección 'usuarios' de Firestore.
+ */
+export async function resolverRolUsuario(uid: string, claimRol: unknown): Promise<RolUsuario> {
+  if (claimRol === 'admin' || claimRol === 'docente' || claimRol === 'estudiante') {
+    return claimRol;
+  }
+
+  try {
+    const db = obtenerAdminDb();
+    const consultaFirestore = db.collection('usuarios').doc(uid).get();
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+    const userDoc = await Promise.race([consultaFirestore, timeout]);
+
+    if (userDoc && userDoc.exists) {
+      const rolDb = userDoc.data()?.rol;
+      if (rolDb === 'admin' || rolDb === 'docente' || rolDb === 'estudiante') {
+        return rolDb;
+      }
+    }
+  } catch {
+    // Fallback silencioso a 'estudiante'
+  }
+
+  return 'estudiante';
+}
+
+/**
  * Extrae y valida la sesión del usuario a partir de la cookie de sesión HttpOnly ('sesion')
  * o de la cabecera 'Authorization: Bearer <idToken>'.
  *
@@ -48,35 +76,18 @@ export async function requerirUsuario(
     let decodedToken;
 
     if (esCookie) {
-      // Validar cookie mediante verificación criptográfica local ultra-rápida (soporta sessionCookie e idToken)
+      // Validar cookie mediante verificación criptográfica local ultra-rápida (primero idToken, luego sessionCookie)
       try {
-        decodedToken = await auth.verifySessionCookie(tokenOId, false);
-      } catch {
         decodedToken = await auth.verifyIdToken(tokenOId, false);
+      } catch {
+        decodedToken = await auth.verifySessionCookie(tokenOId, false);
       }
     } else {
       // Validar idToken directo
       decodedToken = await auth.verifyIdToken(tokenOId, false);
     }
 
-    let rol: RolUsuario = (decodedToken.rol as RolUsuario);
-
-    // Si el token aún no tiene el Custom Claim, consultar perfil en Firestore 'usuarios'
-    if (!rol) {
-      try {
-        const db = obtenerAdminDb();
-        const userDoc = await db.collection('usuarios').doc(decodedToken.uid).get();
-        if (userDoc.exists) {
-          rol = userDoc.data()?.rol as RolUsuario;
-        }
-      } catch {
-        // Silencioso
-      }
-    }
-
-    if (!rol) {
-      rol = 'estudiante';
-    }
+    const rol = await resolverRolUsuario(decodedToken.uid, decodedToken.rol);
 
     const usuario: UsuarioAutenticado = {
       uid: decodedToken.uid,

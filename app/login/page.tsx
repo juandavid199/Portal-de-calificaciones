@@ -1,26 +1,47 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-export default function PaginaLogin() {
+function obtenerDestinoSeguro(rawRedirect: string | null): string {
+  if (!rawRedirect) return '/';
+  if (rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')) {
+    return rawRedirect;
+  }
+  return '/';
+}
+
+function FormularioLoginContenido() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTarget = searchParams?.get('redirect') || '/';
+  const redirectTarget = obtenerDestinoSeguro(searchParams?.get('redirect') ?? null);
 
   const { iniciarSesion, cargando, usuario } = useAuth();
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [errorLocal, setErrorLocal] = useState<string | null>(null);
+  const redirigiendoRef = useRef(false);
 
-  // Si ya tiene sesión activa, redirigir de forma instantánea mediante el router
-  useEffect(() => {
-    if (!cargando && usuario) {
+  const navegarAlDestino = React.useCallback(() => {
+    if (redirigiendoRef.current) return;
+    redirigiendoRef.current = true;
+
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+      // Navegación directa para limpiar la caché del Router de Next.js tras establecer la cookie HttpOnly
+      window.location.replace(redirectTarget);
+    } else if (typeof router?.replace === 'function') {
       router.replace(redirectTarget);
     }
-  }, [cargando, usuario, redirectTarget, router]);
+  }, [redirectTarget, router]);
+
+  // Si ya tiene sesión activa, redirigir al destino
+  useEffect(() => {
+    if (!cargando && usuario && !redirigiendoRef.current) {
+      navegarAlDestino();
+    }
+  }, [cargando, usuario, navegarAlDestino]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +60,10 @@ export default function PaginaLogin() {
     setEnviando(true);
     try {
       await iniciarSesion(correo.trim(), contrasena);
-      // Redirección SPA instantánea con el router de Next.js
-      router.replace(redirectTarget);
+      navegarAlDestino();
     } catch (err: unknown) {
       setEnviando(false);
+      redirigiendoRef.current = false;
       let msg = err instanceof Error ? err.message : 'Error al autenticar';
 
       if (
@@ -52,7 +73,13 @@ export default function PaginaLogin() {
       ) {
         msg = 'Correo institucional o contraseña incorrectos. Por favor verifique sus datos.';
       } else if (msg.includes('auth/too-many-requests')) {
-        msg = 'Demasiados intentos fallidos. Por seguridad, espere unos minutos antes de intentar de nuevo.';
+        msg =
+          'Demasiados intentos fallidos. Por seguridad, espere unos minutos antes de intentar de nuevo.';
+      } else if (msg.includes('auth/network-request-failed')) {
+        msg = 'Error de conexión con Firebase Authentication. Verifique su red e intente de nuevo.';
+      } else if (msg.includes('auth/api-key-not-valid')) {
+        msg =
+          'La configuración de Firebase del cliente (API Key) no es válida. Revise las variables de entorno.';
       }
 
       setErrorLocal(msg);
@@ -72,6 +99,7 @@ export default function PaginaLogin() {
         boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
       }}
     >
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <header style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
         <h1
           id="titulo-login"
@@ -106,7 +134,14 @@ export default function PaginaLogin() {
       <form onSubmit={handleSubmit} noValidate>
         <fieldset
           disabled={enviando}
-          style={{ border: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+          style={{
+            border: 'none',
+            padding: 0,
+            margin: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+          }}
         >
           <legend className="sr-only" style={{ display: 'none' }}>
             Credenciales de acceso
@@ -212,5 +247,13 @@ export default function PaginaLogin() {
         </fieldset>
       </form>
     </section>
+  );
+}
+
+export default function PaginaLogin() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '3rem' }}>Cargando...</div>}>
+      <FormularioLoginContenido />
+    </Suspense>
   );
 }

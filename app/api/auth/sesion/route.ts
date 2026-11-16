@@ -1,12 +1,11 @@
 import { manejar, respuestaJson } from '@/lib/http';
-import { obtenerAdminAuth, obtenerAdminDb } from '@/lib/firebaseAdmin';
+import { obtenerAdminAuth } from '@/lib/firebaseAdmin';
 import { crearSesionPayloadSchema } from '@/schemas/api.schema';
-import type { RolUsuario } from '@/lib/auth';
+import { resolverRolUsuario } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
-// Duración de la cookie: 5 días en milisegundos (según regla de arquitectura 9.1)
-const CINCO_DIAS_MS = 5 * 24 * 60 * 60 * 1000;
+// Duración de la cookie: 5 días en segundos (según regla de arquitectura 9.1)
 const CINCO_DIAS_SEG = 5 * 24 * 60 * 60;
 
 export const POST = manejar(async (req: Request) => {
@@ -15,25 +14,9 @@ export const POST = manejar(async (req: Request) => {
 
   const auth = obtenerAdminAuth();
 
-  // 1. Decodificar el token de inmediato para extraer perfil y rol
+  // 1. Decodificar el token y resolver perfil/rol (con timeout seguro en Firestore)
   const decoded = await auth.verifyIdToken(idToken, false);
-  let rol = decoded.rol as RolUsuario;
-
-  if (!rol) {
-    try {
-      const db = obtenerAdminDb();
-      const userDoc = await db.collection('usuarios').doc(decoded.uid).get();
-      if (userDoc.exists) {
-        rol = userDoc.data()?.rol as RolUsuario;
-      }
-    } catch {
-      // Fallback
-    }
-  }
-
-  if (!rol) {
-    rol = 'estudiante';
-  }
+  const rol = await resolverRolUsuario(decoded.uid, decoded.rol);
 
   // 2. Establecer la cookie de sesión cifrada de forma instantánea sin bloqueo de red externo
   const sessionCookie = idToken;

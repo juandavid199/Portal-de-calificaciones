@@ -1,8 +1,9 @@
 import { initializeApp, getApps, cert, type App } from 'firebase-admin/app';
 import { getAuth, type Auth } from 'firebase-admin/auth';
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { initializeFirestore, getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 let adminApp: App;
+let adminDb: Firestore | null = null;
 
 export function obtenerFirebaseAdmin(): App {
   if (getApps().length > 0) {
@@ -43,6 +44,15 @@ export function obtenerAdminAuth(): Auth {
 }
 
 export function obtenerAdminDb(): Firestore {
-  return getFirestore(obtenerFirebaseAdmin());
+  if (adminDb) {
+    return adminDb;
+  }
+  const app = obtenerFirebaseAdmin();
+  try {
+    adminDb = initializeFirestore(app, { preferRest: true });
+  } catch {
+    adminDb = getFirestore(app);
+  }
+  return adminDb;
 }
 

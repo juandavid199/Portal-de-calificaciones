@@ -28,32 +28,97 @@ const AuthContext = createContext<AuthContextType>({
   cerrarSesion: async () => {},
 });
 
+function esRolValido(val: unknown): val is RolUsuario {
+  return val === 'admin' || val === 'docente' || val === 'estudiante';
+}
+
+async function fetchConTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs = 8000
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(null);
   const [cargando, setCargando] = useState(true);
   const autenticandoRef = useRef(false);
 
-  // Sincronizar usuario activo consultando /api/auth/yo
-  const refrescarPerfilServidor = useCallback(async () => {
-    try {
-      const res = await fetch('/api/auth/yo', {
-        method: 'GET',
+  // Establecer cookie en el servidor a partir de un idToken
+  const establecerCookieServidor = useCallback(async (idToken: string): Promise<UsuarioSesion> => {
+    const res = await fetchConTimeout(
+      '/api/auth/sesion',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         credentials: 'include',
-      });
+        body: JSON.stringify({ idToken }),
+      },
+      10000
+    );
 
-      if (res.ok) {
-        const data = await res.json();
-        setUsuario(data.usuario);
-      } else {
-        setUsuario(null);
-      }
-    } catch {
-      setUsuario(null);
-    } finally {
-      setCargando(false);
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(
+        errJson?.error || `No se pudo establecer la sesión en el servidor (HTTP ${res.status}).`
+      );
     }
+
+    const data = await res.json();
+    return data.usuario as UsuarioSesion;
   }, []);
+
+  // Sincronizar usuario activo consultando /api/auth/yo
+  const refrescarPerfilServidor = useCallback(
+    async (userCliente?: User | null) => {
+      try {
+        const res = await fetchConTimeout(
+          '/api/auth/yo',
+          {
+            method: 'GET',
+            credentials: 'include',
+          },
+          6000
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          setUsuario(data.usuario);
+          return;
+        }
+
+        // Si el cliente tiene sesión en Firebase Auth pero la cookie HttpOnly expiró, renovarla automáticamente
+        if (res.status === 401 && userCliente) {
+          try {
+            const idTokenFresco = await userCliente.getIdToken(true);
+            const usuarioRenovado = await establecerCookieServidor(idTokenFresco);
+            setUsuario(usuarioRenovado);
+            return;
+          } catch {
+            setUsuario(null);
+            return;
+          }
+        }
+
+        setUsuario(null);
+      } catch {
+        // Si falla la red pero ya teníamos perfil en cliente, no destruir sesión localmente si no es 401
+      } finally {
+        setCargando(false);
+      }
+    },
+    [establecerCookieServidor]
+  );
 
   useEffect(() => {
     try {
@@ -65,7 +130,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (user) {
-          await refrescarPerfilServidor();
+          try {
+            // Leer claims cacheados en IndexedDB (~5ms) para renderizar la interfaz al instante
+            const tokenResult = await user.getIdTokenResult();
+            if (esRolValido(tokenResult.claims.rol)) {
+              setUsuario({
+                uid: user.uid,
+                correo: user.email || undefined,
+                rol: tokenResult.claims.rol,
+              });
+              setCargando(false);
+            }
+          } catch {
+            // Continuar a verificación de servidor
+          }
+
+          await refrescarPerfilServidor(user);
         } else {
           setUsuario(null);
           setCargando(false);
@@ -85,29 +165,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cred = await signInWithEmailAndPassword(auth, correo, contrasena);
       const idToken = await cred.user.getIdToken();
 
-      // Enviar idToken al servidor para establecer la cookie HttpOnly y recibir perfil de inmediato
-      const res = await fetch('/api/auth/sesion', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error || 'No se pudo establecer la sesión en el servidor.');
-      }
-
-      const data = await res.json();
-      if (data.usuario) {
-        setUsuario(data.usuario);
+      const usuarioServidor = await establecerCookieServidor(idToken);
+      if (usuarioServidor) {
+        setUsuario(usuarioServidor);
       } else {
-        await refrescarPerfilServidor();
+        await refrescarPerfilServidor(cred.user);
       }
     } catch (err: unknown) {
       setUsuario(null);
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error(
+          'El servidor tardó demasiado en responder al crear la sesión. Por favor intente nuevamente.'
+        );
+      }
       const msg = err instanceof Error ? err.message : 'Error al iniciar sesión';
       throw new Error(msg);
     } finally {
@@ -122,10 +192,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const auth = obtenerAuthCliente();
       await signOut(auth);
 
-      await fetch('/api/auth/sesion', {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      await fetchConTimeout(
+        '/api/auth/sesion',
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        },
+        4000
+      ).catch(() => null);
 
       setUsuario(null);
       if (typeof router?.replace === 'function') {
