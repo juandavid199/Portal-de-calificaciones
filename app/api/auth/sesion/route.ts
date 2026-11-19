@@ -68,6 +68,7 @@ export const DELETE = manejar(async () => {
     esProduccion ? 'Secure' : '',
     'SameSite=Lax',
     'Path=/',
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT',
     'Max-Age=0',
   ]
     .filter(Boolean)

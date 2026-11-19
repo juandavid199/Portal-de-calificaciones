@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
@@ -17,7 +17,7 @@ function FormularioLoginContenido() {
   const searchParams = useSearchParams();
   const redirectTarget = obtenerDestinoSeguro(searchParams?.get('redirect') ?? null);
 
-  const { iniciarSesion, cargando, usuario } = useAuth();
+  const { iniciarSesion } = useAuth();
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [enviando, setEnviando] = useState(false);

@@ -204,18 +204,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ).catch(() => null);
 
       setUsuario(null);
-      if (typeof router?.replace === 'function') {
-        router.replace('/login');
-        router.refresh();
-      }
     } catch {
       setUsuario(null);
-      if (typeof router?.replace === 'function') {
-        router.replace('/login');
-        router.refresh();
-      }
     } finally {
       setCargando(false);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?logout=true';
+      } else if (typeof router?.replace === 'function') {
+        router.replace('/login');
+      }
     }
   };
 

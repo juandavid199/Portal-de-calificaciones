@@ -58,6 +58,13 @@ export function proxy(request: NextRequest) {
 
   // 2. Si el usuario intenta ir a /login:
   if (pathname === '/login') {
+    // Si viene de cerrar sesión explícitamente (?logout=true), limpiar cookie y mostrar login
+    if (request.nextUrl.searchParams.get('logout') === 'true') {
+      const response = NextResponse.next();
+      response.cookies.delete('sesion');
+      return response;
+    }
+
     // Si la cookie existe pero el token ya expiró, limpiarla y permitirle ver /login
     if (cookieSesion && !tokenValido) {
       const response = NextResponse.next();
