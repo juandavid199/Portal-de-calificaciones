@@ -28,11 +28,11 @@ function FormularioLoginContenido() {
     if (redirigiendoRef.current) return;
     redirigiendoRef.current = true;
 
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
-      // Navegación directa para limpiar la caché del Router de Next.js tras establecer la cookie HttpOnly
-      window.location.replace(redirectTarget);
-    } else if (typeof router?.replace === 'function') {
+    if (typeof router?.replace === 'function') {
       router.replace(redirectTarget);
+      router.refresh();
+    } else if (typeof window !== 'undefined') {
+      window.location.href = redirectTarget;
     }
   }, [redirectTarget, router]);
 

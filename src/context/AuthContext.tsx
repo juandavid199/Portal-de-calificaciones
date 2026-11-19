@@ -206,11 +206,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUsuario(null);
       if (typeof router?.replace === 'function') {
         router.replace('/login');
+        router.refresh();
       }
     } catch {
       setUsuario(null);
       if (typeof router?.replace === 'function') {
         router.replace('/login');
+        router.refresh();
       }
     } finally {
       setCargando(false);
