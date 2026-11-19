@@ -283,22 +283,32 @@ export async function obtenerDetalleMatriculasCursoDb(cursoId: string) {
     .collection('notas')
     .get();
 
+  // 2. Obtener usuarios con rol 'estudiante' para resolver nombres completos
+  const usuariosSnapshot = await db
+    .collection('usuarios')
+    .where('rol', '==', 'estudiante')
+    .get();
+
+  const mapaUsuarios = new Map<string, { nombre: string; correo: string }>();
+  usuariosSnapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    mapaUsuarios.set(doc.id, {
+      nombre: data.nombre || data.correo || 'Estudiante',
+      correo: data.correo || '',
+    });
+  });
+
   const matriculados = notasSnapshot.docs.map((doc) => {
     const data = doc.data();
+    const infoUsuario = mapaUsuarios.get(doc.id);
     return {
       uid: doc.id,
-      nombre: data.nombre || `Estudiante (${doc.id.substring(0, 6)})`,
+      nombre: data.nombre || infoUsuario?.nombre || `Estudiante (${doc.id.substring(0, 6)})`,
       matriculadoEn: data.matriculadoEn || data.actualizadoEn || '',
     };
   });
 
   const uidsMatriculados = new Set(matriculados.map((m) => m.uid));
-
-  // 2. Obtener todos los usuarios con rol 'estudiante' en Firestore
-  const usuariosSnapshot = await db
-    .collection('usuarios')
-    .where('rol', '==', 'estudiante')
-    .get();
 
   const disponibles: { uid: string; nombre: string; correo: string }[] = [];
   usuariosSnapshot.docs.forEach((doc) => {

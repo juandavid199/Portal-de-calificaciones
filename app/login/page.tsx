@@ -36,13 +36,6 @@ function FormularioLoginContenido() {
     }
   }, [redirectTarget, router]);
 
-  // Si ya tiene sesión activa, redirigir al destino
-  useEffect(() => {
-    if (!cargando && usuario && !redirigiendoRef.current) {
-      navegarAlDestino();
-    }
-  }, [cargando, usuario, navegarAlDestino]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorLocal(null);

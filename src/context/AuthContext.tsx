@@ -105,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUsuario(usuarioRenovado);
             return;
           } catch {
+            const auth = obtenerAuthCliente();
+            await signOut(auth).catch(() => null);
             setUsuario(null);
             return;
           }

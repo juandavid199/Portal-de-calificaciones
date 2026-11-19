@@ -8,7 +8,10 @@ function esTokenExpiradoOInvalido(token: string): boolean {
   try {
     const partes = token.split('.');
     if (partes.length !== 3) return true;
-    const payloadBase64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+    let payloadBase64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (payloadBase64.length % 4) {
+      payloadBase64 += '=';
+    }
     const jsonStr = atob(payloadBase64);
     const payload = JSON.parse(jsonStr);
     if (!payload.exp) return false;

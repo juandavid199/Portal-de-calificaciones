@@ -18,8 +18,14 @@ export const POST = manejar(async (req: Request) => {
   const decoded = await auth.verifyIdToken(idToken, false);
   const rol = await resolverRolUsuario(decoded.uid, decoded.rol);
 
-  // 2. Establecer la cookie de sesión cifrada de forma instantánea sin bloqueo de red externo
-  const sessionCookie = idToken;
+  // 2. Establecer la cookie de sesión cifrada (5 días según regla 9.1)
+  let sessionCookie = idToken;
+  try {
+    const expiresInMs = CINCO_DIAS_SEG * 1000;
+    sessionCookie = await auth.createSessionCookie(idToken, { expiresIn: expiresInMs });
+  } catch {
+    sessionCookie = idToken;
+  }
 
   const response = respuestaJson(
     {

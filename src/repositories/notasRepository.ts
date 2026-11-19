@@ -67,6 +67,7 @@ export async function aplicarTransaccionNotasLote(
 
     // Leer notas previas de todos los estudiantes afectados dentro de la transacción
     const notasPreviasMap = new Map<string, Record<string, number | null>>();
+    const nombresPreviosMap = new Map<string, string | undefined>();
     const notasRefsMap = new Map<string, FirebaseFirestore.DocumentReference>();
 
     for (const estudianteUid of cambiosPorEstudiante.keys()) {
@@ -77,6 +78,7 @@ export async function aplicarTransaccionNotasLote(
       if (notaSnap.exists) {
         const data = notaSnap.data()!;
         notasPreviasMap.set(estudianteUid, (data.valores as Record<string, number | null>) || {});
+        nombresPreviosMap.set(estudianteUid, data.nombre as string | undefined);
       } else {
         notasPreviasMap.set(estudianteUid, {});
       }
@@ -91,6 +93,7 @@ export async function aplicarTransaccionNotasLote(
     for (const [estudianteUid, listaCambios] of cambiosPorEstudiante.entries()) {
       const notaRef = notasRefsMap.get(estudianteUid)!;
       const notasActuales = { ...(notasPreviasMap.get(estudianteUid) || {}) };
+      const nombreEstudiante = nombresPreviosMap.get(estudianteUid);
 
       for (const c of listaCambios) {
         const valorAnterior = notasActuales[c.actividadId] ?? null;
@@ -116,13 +119,18 @@ export async function aplicarTransaccionNotasLote(
       const nuevoDefinitivo = calcularDefinitivoPonderado(actividades, notasActuales);
       nuevosDefinitivos[estudianteUid] = nuevoDefinitivo;
 
-      // Escribir fila de notas consolidada
-      transaction.set(notaRef, {
-        estudianteUid,
-        valores: notasActuales,
-        definitivo: nuevoDefinitivo,
-        actualizadoEn: ahoraIso,
-      });
+      // Escribir fila de notas consolidada preservando el nombre del estudiante
+      transaction.set(
+        notaRef,
+        {
+          estudianteUid,
+          ...(nombreEstudiante ? { nombre: nombreEstudiante } : {}),
+          valores: notasActuales,
+          definitivo: nuevoDefinitivo,
+          actualizadoEn: ahoraIso,
+        },
+        { merge: true }
+      );
     }
 
     return {
