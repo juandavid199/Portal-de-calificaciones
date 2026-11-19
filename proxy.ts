@@ -57,24 +57,17 @@ export function proxy(request: NextRequest) {
   }
 
   // 2. Si el usuario intenta ir a /login:
+  // Nunca redirigir /login -> / desde el proxy para evitar cualquier loop de redirección con el cliente.
   if (pathname === '/login') {
-    // Si viene de cerrar sesión explícitamente (?logout=true), limpiar cookie y mostrar login
-    if (request.nextUrl.searchParams.get('logout') === 'true') {
+    if (
+      request.nextUrl.searchParams.get('logout') === 'true' ||
+      (cookieSesion && !tokenValido)
+    ) {
       const response = NextResponse.next();
       response.cookies.delete('sesion');
       return response;
     }
-
-    // Si la cookie existe pero el token ya expiró, limpiarla y permitirle ver /login
-    if (cookieSesion && !tokenValido) {
-      const response = NextResponse.next();
-      response.cookies.delete('sesion');
-      return response;
-    }
-    // Si y solo si el token es 100% válido y vigente, redirigir al inicio
-    if (tokenValido) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
+    return NextResponse.next();
   }
 
   return NextResponse.next();

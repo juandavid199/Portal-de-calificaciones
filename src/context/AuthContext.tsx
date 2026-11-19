@@ -149,8 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           await refrescarPerfilServidor(user);
         } else {
-          setUsuario(null);
-          setCargando(false);
+          // Verificar si existe una cookie HttpOnly vigente en el servidor antes de dar la sesión por cerrada
+          await refrescarPerfilServidor(null);
         }
       });
       return () => unsubscribe();
@@ -189,11 +189,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const cerrarSesion = async () => {
+    autenticandoRef.current = true;
     setCargando(true);
     try {
-      const auth = obtenerAuthCliente();
-      await signOut(auth);
-
       await fetchConTimeout(
         '/api/auth/sesion',
         {
@@ -203,15 +201,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         4000
       ).catch(() => null);
 
+      const auth = obtenerAuthCliente();
+      await signOut(auth).catch(() => null);
+
       setUsuario(null);
     } catch {
       setUsuario(null);
     } finally {
-      setCargando(false);
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login?logout=true';
-      } else if (typeof router?.replace === 'function') {
-        router.replace('/login');
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+        window.location.assign('/login?logout=true');
+      } else {
+        autenticandoRef.current = false;
+        setCargando(false);
+        if (typeof router?.replace === 'function') {
+          router.replace('/login');
+        }
       }
     }
   };
